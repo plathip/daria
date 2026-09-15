@@ -1,5 +1,9 @@
 # Firefighting Drone
 
+![The drone assembling itself, with the extinguisher ball dropper underneath](images/drone_assembly.gif)
+
+![The portal: home, Setup converting a Betaflight quad, then Operations flying a mission in the simulator](images/portal_tour.gif)
+
 A 5" quad that flies itself to a building you click on the map, drops a
 0.5 kg extinguisher ball and comes home. The laptop only starts the mission;
 the flight runs inside the aircraft, and the pilot's radio overrides it at any
