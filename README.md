@@ -49,6 +49,7 @@ aircraft. Needs SITL for Windows in `tools/sitl/` (not in the repository).
 | `console/` | The portal: web pages and the Flask server |
 | `fc/` | Flight controller tools: flashing, parameters, Bluetooth bridge, Betaflight translation |
 | `docs/` | Project status and parts |
+| `stl/` | 3D-printable dropper parts: body, cover, payload |
 
 ## Safety
 
