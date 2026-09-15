@@ -83,8 +83,8 @@ aircraft. Needs SITL for Windows in `tools/sitl/` (not in the repository).
 - Dropping objects from a drone and flying beyond line of sight are regulated
   in most countries. Test with an inert dummy ball, within sight, over ground
   you control, and check local rules before any real use.
-- This project is in beta. 
-  Before the first flight, have an experienced drone pilot or a professional
+- This project is in beta, it has been fly-tested, but 
+  before the first flight, have an experienced drone pilot or a professional
   check the build, the wiring and every Setup step, or at least go through
   them again with an AI assistant, and make sure the failsafes and the
   radio override work on the bench first.
