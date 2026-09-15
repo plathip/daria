@@ -1,16 +1,17 @@
 # Firefighting Drone
 
-![The drone assembling itself, with the extinguisher ball dropper underneath](images/drone_assembly.gif)
+<p align="center">
+  <img src="images/drone_assembly.gif" height="230" alt="The drone assembling itself, with the extinguisher ball dropper underneath">
+  &nbsp;
+  <img src="images/portal_tour.gif" height="230" alt="The portal: home, Setup converting a Betaflight quad, then Operations flying a mission in the simulator">
+</p>
 
-![The portal: home, Setup converting a Betaflight quad, then Operations flying a mission in the simulator](images/portal_tour.gif)
+Turn almost any FPV drone into a firefighting drone, or print the frame from
+`stl/` and build one with the same parts. Click a building on the map: the
+drone flies there by itself, drops a 0.5 kg extinguisher ball and comes home.
+The pilot's radio overrides it at any moment.
 
-A 5" quad that flies itself to a building you click on the map, drops a
-0.5 kg extinguisher ball and comes home. The laptop only starts the mission;
-the flight runs inside the aircraft, and the pilot's radio overrides it at any
-moment.
-
-Flight controller: SpeedyBee F405 V5 running ArduCopter 4.7, with its built-in
-Bluetooth as the link to the laptop. Progress and parts:
+Runs on ArduCopter (SpeedyBee F405 V5 tested). Progress and parts:
 [docs/project-status.md](docs/project-status.md).
 
 ## Install (Windows 10 or 11, 64-bit)
