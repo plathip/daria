@@ -11,8 +11,7 @@ Turn almost any FPV drone into a firefighting drone, or print the frame from
 drone flies there by itself, drops a 0.5 kg extinguisher ball and comes home.
 The pilot's radio overrides it at any moment.
 
-Runs on ArduCopter (SpeedyBee F405 V5 tested). Progress and parts:
-[docs/project-status.md](docs/project-status.md).
+Runs on ArduCopter (SpeedyBee F405 V5 tested).
 
 ## Tested with these components
 
@@ -29,9 +28,6 @@ Runs on ArduCopter (SpeedyBee F405 V5 tested). Progress and parts:
 | 9 | Capacitor | low-ESR capacitor on the ESC power pads |
 | 10 | Release servo | MG90S 9 g metal gear, positional, on FC output 6 |
 
-Frame: the printed one in `stl/`, or any 5" frame with room for the ball.
-Any flight controller in ArduPilot's board list should work; the Setup page
-lists them.
 
 ## Install (Windows 10 or 11, 64-bit)
 
@@ -40,7 +36,7 @@ lists them.
    sure. It downloads a private copy of Python and the packages into the
    folder (about 60 MB). No admin rights; nothing else on the laptop is touched.
 3. Double-click **FireFighting Drone Portal** on the Desktop (or **Start** in
-   the folder). The portal opens at http://127.0.0.1:8008.
+   the folder).
 
 Flashing a board for the first time may need the USB driver for its
 bootloader once. The Setup page says so when it happens and names the tool
