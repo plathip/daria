@@ -1,0 +1,114 @@
+# Generic ArduCopter parameter set for ANY ArduPilot-supported flight controller
+# = the SpeedyBee F405 V5 set minus board-specific lines (serial port roles, OSD, VTX, ESC telemetry).
+# After loading: assign your GPS / receiver / telemetry UARTs (SERIALx_PROTOCOL) for YOUR board,
+# and check BATT_MONITOR matches your board (4 = analog voltage+current, typical).
+
+# ArduCopter base parameters — SpeedyBee F405 V5 stack, 5-inch quad, firefighting build
+# DRAFT: load via Mission Planner > Config > Full Parameter List > Load from file.
+# Items marked FINALIZE get set together at flash time (they depend on which
+# physical pads we wire).
+
+# ---- Frame ----
+FRAME_CLASS,1
+FRAME_TYPE,12
+# 12 = BetaflightX: motor positions match the Betaflight wiring as-is
+# (backup shows yaw_motors_reversed=OFF -> normal props-in)
+
+# ---- Motors / ESC (OX32 55A 4-in-1, DShot300 to match previous BF setup) ----
+MOT_PWM_TYPE,5
+MOT_SPIN_ARM,0.10
+MOT_SPIN_MIN,0.13
+MOT_THST_EXPO,0.70
+MOT_THST_HOVER,0.25
+MOT_HOVER_LEARN,2
+
+# ---- Gyro filtering (5-inch defaults; refined after first hover log) ----
+INS_GYRO_FILTER,80
+INS_ACCEL_FILTER,20
+ATC_RAT_RLL_FLTD,40
+ATC_RAT_PIT_FLTD,40
+INS_HNTCH_ENABLE,1
+INS_HNTCH_MODE,1
+INS_HNTCH_REF,0.25
+INS_HNTCH_FREQ,120
+INS_HNTCH_BW,60
+# FINALIZE: if the V5 target supports bidirectional DShot, switch HNTCH_MODE to 3 (RPM)
+
+# ---- Battery (6S) ----
+BATT_MONITOR,4
+BATT_ARM_VOLT,22.6
+BATT_LOW_VOLT,21.0
+BATT_CRT_VOLT,20.4
+BATT_FS_LOW_ACT,2
+BATT_FS_CRT_ACT,1
+# RTL on low battery, LAND on critical
+# (voltage/current scales are baked into the V5 firmware defaults: 11.0 / 25.0)
+
+# ---- GPS + compass (FlyFishRC M10-IST8310, user-owned) ----
+GPS1_TYPE,1
+COMPASS_ENABLE,1
+# IST8310 has a native ArduPilot driver; COMPASS_AUTO_ROT (default) detects
+# the module's mounting orientation during compass calibration
+
+# ---- Serial ports (matched to the ACTUAL wiring from the BF backup) ----
+# UART1 = onboard Bluetooth bridge -> MAVLink2 (wireless Mission Planner attempt)
+# UART2 = ELRS receiver (CRSF)
+# UART3 = VTX SmartAudio control, same as under Betaflight
+# UART4 = free pads, spare MAVLink2 port (a telemetry radio, if you fit one)
+# UART6 = FlyFishRC M10 GPS (SERIAL5 = ESC telemetry stays at firmware default)
+
+# ---- Failsafes / safety net ----
+FS_THR_ENABLE,1
+FS_THR_VALUE,975
+RTL_ALT_M,30
+RTL_LOIT_TIME,2000
+FENCE_ENABLE,1
+FENCE_TYPE,7
+FENCE_RADIUS,200
+FENCE_ALT_MAX,60
+FENCE_ACTION,1
+RALLY_LIMIT_KM,0.001
+# rally points (if ever uploaded as map markers) must NEVER divert RTL —
+# lesson from sim: RTL lands at the nearest rally point, not home
+# (4.7: all arming checks on is the default — ARMING_SKIPCHK,0)
+
+# ---- Switches (mirrors your Betaflight layout) ----
+RC5_OPTION,153
+# ch5 = your existing arm switch -> ArduPilot arm/disarm, same muscle memory
+FLTMODE_CH,6
+FLTMODE1,4
+FLTMODE2,4
+FLTMODE6,0
+FLTMODE4,5
+# ch6 3-pos = GUIDED / Loiter / Stabilize (changed 2026-09-01, verified on the
+# aircraft: low = autopilot [the mission from the laptop drives, holds position until commanded],
+# middle = Loiter [take-over = flip UP], high = Stabilize [experts]).
+# NOTE: AltHold is no longer on the switch — no GPS-less easy mode.
+RC9_OPTION,0
+# ch9 unassigned (was the old AltHold/PosHold switch)
+RC11_OPTION,4
+# ch11 high = RTL (your old GPS Rescue switch, same finger as before)
+FLTMODE3,5
+FLTMODE5,0
+# 3-pos mode switch middle lands in slot 3 or 4 depending on trim; both = Loiter.
+# Slots 2 and 5 banded to their neighbors so off-center trim never surprises.
+RC7_OPTION,0
+RC8_OPTION,0
+# ch7, ch8 = spare switches, nothing assigned (the Setup radio step can assign them)
+
+# ---- Guided/auto behavior (4.7: cruise speed is set per-mission
+# with DO_CHANGE_SPEED; WP_ACC/WP_JERK defaults are fine) ----
+LAND_SPD_MS,0.5
+
+# ---- OSD (keeps your analog Ratel 2 feed useful) ----
+
+# ---- Logging ----
+LOG_BITMASK,176126
+
+# added 2026-09-11: proven live on the aircraft
+AUTO_OPTIONS,3   # arm in AUTO + takeoff without throttle raise (one-click missions)
+RC3_DZ,150   # forgiving throttle dead zone for the arming check
+SERVO6_FUNCTION,0   # release servo output, driven by DO_SET_SERVO
+SERVO6_MIN,900
+SERVO6_MAX,2500
+SERVO6_TRIM,1500

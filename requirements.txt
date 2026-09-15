@@ -1,0 +1,7 @@
+# Field laptop / ground station. Install.bat installs these into .python for you.
+pymavlink>=2.4.49
+pyserial>=3.5
+flask>=3.0
+bleak>=0.21          # Bluetooth link to the flight controller (fc/bt_bridge.py)
+pyusb>=1.2           # flashing ArduPilot over USB DFU (fc/dfu_flash.py)
+libusb-package>=1.0  # ships the libusb DLL pyusb needs on Windows

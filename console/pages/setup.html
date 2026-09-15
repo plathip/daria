@@ -1,0 +1,1083 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup · FireFighting Drone Portal</title>
+<link rel="stylesheet" href="/static/portal.css">
+<style>
+ .modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 16px}
+ @media(max-width:860px){.modes{grid-template-columns:1fr}}
+ .mode{cursor:pointer;border:1px solid var(--line);padding:18px 20px;background:var(--panel);transition:border-color .15s}
+ .mode:hover{border-color:var(--line2)} .mode.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+ .mode h2{margin:0 0 6px;font-size:16px;font-weight:600} .mode p{margin:0;color:var(--muted);font-size:13px}
+ .mode .k{display:inline-block;margin-bottom:10px;font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+ .mode.sel .k{color:var(--text)}
+ .steps{display:grid;gap:8px}
+ .step{border:1px solid var(--line);background:var(--panel);overflow:hidden}
+ .step .hd{display:flex;align-items:center;gap:14px;padding:12px 16px;cursor:pointer}
+ .step .n{width:28px;height:28px;background:var(--panel2);border:1px solid var(--line2);display:flex;
+          align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:12px;flex:none}
+ .step.done .n{background:var(--accent);color:#0a0a0b;border-color:var(--accent)}
+ .step .t{font-weight:600;font-size:14px;flex:1} .step .t small{display:block;color:var(--muted);font-weight:400;font-size:13px;margin-top:2px}
+ .step .bd{display:none;padding:0 16px 16px 58px;color:#cfd0d6;font-size:13.5px;line-height:1.55}
+ .step.open .bd{display:block}
+ .step .bd ol,.step .bd ul{margin:6px 0 8px 18px;padding:0} .step .bd li{margin:4px 0}
+ .step .bd .code{margin:8px 0}
+ .step .run{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px;align-items:center}
+ .step input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);cursor:pointer}
+ .fail{margin-top:12px;border-top:1px dashed var(--line2);padding-top:10px;color:var(--muted);font-size:13px}
+ .fail b{color:var(--text)}
+ .danger{color:var(--warn);font-weight:700}
+ .prog{display:flex;align-items:center;gap:12px;margin:0 0 12px;color:var(--muted);font-size:12px;font-family:var(--mono)}
+ .prog .btn{font-family:var(--font)}
+ .bar{flex:1;height:6px;background:var(--panel2);overflow:hidden;border:1px solid var(--line)}
+ .bar i{display:block;height:100%;background:var(--accent);width:0}
+ .parts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+ @media(max-width:860px){.parts{grid-template-columns:1fr}}
+ .parts ul{margin:6px 0 0 18px;padding:0} .parts li{margin:5px 0} .parts .why{color:var(--muted);font-size:12.5px}
+ .cfg{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+ .cfg label,.lbl2{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:600;margin-bottom:6px}
+ .cfg select,.cfg input,select.inp,input.inp{padding:8px 10px;border:1px solid var(--line2);background:var(--bg);color:var(--text);font-size:13px}
+ .cfg select,.cfg input{width:100%}
+ #out{position:fixed;left:0;right:0;bottom:0;background:#08080a;border-top:1px solid var(--line2);display:none;
+      grid-template-rows:auto 1fr;height:34vh;z-index:100}
+ #out .oh{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:12.5px}
+ #out pre{margin:0;padding:10px 16px;overflow:auto;font-family:var(--mono);font-size:12.5px;color:#d6d6dc;white-space:pre-wrap}
+ body.hasout .page{padding-bottom:38vh}
+ .panel{display:grid;gap:8px;background:var(--panel2);border:1px solid var(--line);padding:12px 14px;margin:8px 0}
+ .panel input[type=range]{width:100%;accent-color:var(--accent)}
+ .vals{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+ .quad{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:440px}
+ .quad .mbtn{height:auto;padding:12px 10px;font-size:16px;font-weight:800;flex-direction:column;gap:2px}
+ .quad .mbtn small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
+ .rcbars{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+ .rcbar{font-size:11px;color:var(--muted)} .rcbar .tr{height:10px;background:var(--bg);border:1px solid var(--line2);overflow:hidden;position:relative}
+ .rcbar .tr i{position:absolute;top:0;bottom:0;left:0;background:var(--accent);width:0}
+ .rcbar .tr b{position:absolute;top:0;bottom:0;width:2px;background:var(--bad)}
+ .pos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:520px}
+ .pos button{text-align:left}
+ .fcsays{font-size:12px;color:var(--muted);font-family:var(--mono)}
+ table.t select{padding:4px 6px;border:1px solid var(--line2);background:var(--bg);color:var(--text)}
+ .tag-ok{color:var(--ok)} .tag-bad{color:var(--bad)} .tag-warn{color:var(--warn)}
+ /* wizard diagrams & panels */
+ .two{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start}
+ @media(max-width:720px){.two{grid-template-columns:1fr}}
+ .fig{display:inline-block} .figrow{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;align-items:flex-start}
+ .pose{display:flex;flex-direction:column;align-items:center;gap:1px;width:126px;text-align:center}
+ .pose .cap{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+ svg .tiny{font-size:9.5px;fill:var(--muted);font-family:var(--font)} svg .lab{font-size:9px;font-weight:700;letter-spacing:.12em;fill:var(--muted);font-family:var(--font)} svg .big{font-size:20px;font-weight:700;fill:var(--text);font-family:var(--font)}
+ .tiny{font-size:11px}
+ .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px;align-items:baseline} .kv span{color:var(--muted)} .kv b{font-family:var(--mono);font-weight:600}
+ .chk label{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer} .chk label:last-child{border-bottom:0}
+ .chk input{margin-top:2px;flex:none;width:16px;height:16px;accent-color:var(--accent)}
+ .step .bd p{margin:6px 0}
+ .pos button{height:auto;min-height:30px;flex-direction:column;align-items:flex-start;padding:6px 10px} .pos button small{font-weight:400;color:var(--muted);font-size:11px}
+ .run label{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+ /* board picker */
+ .pick{position:relative;display:flex} .pick input{flex:1;font-family:var(--mono)}
+ .pickbtn{width:34px;border:1px solid var(--line2);border-left:0;background:var(--panel2);color:var(--text);cursor:pointer;font-size:12px}
+ .picklist{position:absolute;left:0;right:0;top:100%;max-height:280px;overflow:auto;background:var(--panel);border:1px solid var(--line2);z-index:60;display:none;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+ .picklist div{padding:7px 10px;cursor:pointer;font-family:var(--mono);font-size:12.5px;border-bottom:1px solid var(--line)} .picklist div:hover{background:var(--panel2)} .picklist div.muted{cursor:default;font-family:var(--font)}
+ table.t td .inp{width:100%}
+ #bt_list tr.cur td{background:rgba(63,207,112,.08)}
+ #modetbl tr.cur td{outline:1px solid var(--warn);background:rgba(230,178,58,.08)}
+ /* live status bar */
+ .sbar{position:fixed;left:0;right:0;bottom:0;z-index:120;display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 24px;background:var(--bg);border-top:1px solid var(--line2)}
+ .page{padding-bottom:100px}
+ body.hasout .sbar{bottom:34vh} body.hasout .page{padding-bottom:calc(34vh + 100px)}
+ .chip{display:inline-flex;align-items:center;height:26px;padding:0 10px;background:var(--panel);border:1px solid var(--line2);font-family:var(--mono);font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;max-width:60vw;overflow:hidden;text-overflow:ellipsis}
+ .chip.ok{color:var(--ok);border-color:var(--ok)} .chip.warn{color:var(--warn);border-color:var(--warn)} .chip.bad{color:var(--bad);border-color:var(--bad)}
+ #toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:#3a1418;border:1px solid var(--bad);color:#ffd7d9;padding:10px 16px;font-size:13px;z-index:200;display:none;max-width:70vw}
+ .beta{display:inline-block;margin-left:6px;padding:1px 6px;border:1px solid var(--warn);color:var(--warn);font-size:10px;letter-spacing:.14em;vertical-align:middle}
+ .beta-note{border-color:var(--warn);border-left:4px solid var(--warn);font-size:13px;line-height:1.5}
+</style></head><body>
+<div class="hdr">
+  <div class="brand"><span class="dot"></span>FireFighting Drone Portal <span class="sub">Setup</span></div>
+  <div class="menu" id="menu"><button onclick="document.getElementById('menu').classList.toggle('open')">Menu ▾</button>
+    <div class="dd"><div class="lbl">Pages</div>
+      <a href="/">Portal home</a><a href="/ops">Operations</a><a href="/setup">Setup</a><a href="/requirements">Requirements</a>
+    </div></div>
+</div>
+<div class="sbar" id="sbar"><span class="chip" id="s_link">LINK …</span><span class="chip" id="s_mode">MODE –</span><span class="chip" id="s_arm">–</span><span class="chip" id="s_batt">BATT –</span><span class="chip" id="s_gps">GPS –</span><span class="chip" id="s_pre"></span><span class="chip" id="s_fw"></span></div>
+<div class="page">
+  <h1>Setup</h1>
+  <p class="lead">Plug the flight controller into this laptop by USB (props off). Everything a computer can do here is a button, usually with a picture of what the drone should be doing, and the drone answers through "FC says". Do the steps in order. Each one assumes the ones above it.</p>
+
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn primary" onclick="detect()">⌕ Detect flight controller</button>
+      <span id="fcbox" class="muted">-</span>
+    </div>
+    <h3>Your drone &amp; connection</h3>
+    <div class="cfg">
+      <div><label>Flight controller board (ArduPilot id)</label>
+        <div class="pick"><input id="board" placeholder="loading the official list…" autocomplete="off" spellcheck="false"><button type="button" class="pickbtn" id="boardall" title="show the whole list">▾</button><div class="picklist" id="boardlist"></div></div>
+        <div class="muted" style="font-size:11.5px;margin-top:4px" id="boardnote"></div></div>
+      <div><label>How this laptop talks to the drone</label><select id="link">
+        <option value="auto">Automatic: USB cable when plugged in, otherwise Bluetooth</option>
+        <option value="ble">Bluetooth only (built into the SpeedyBee)</option>
+        <option value="radio">Telemetry radio plugged into USB</option>
+        <option value="usb">USB cable only (bench)</option></select>
+        <input id="blename" placeholder="Bluetooth name contains… (e.g. F405)" style="margin-top:6px">
+        <div class="muted" style="font-size:11.5px;margin-top:4px">Leave this on Automatic. Cable plugged in means bench: the console uses the cable and the one-click tools borrow it. Cable out means Bluetooth, which Operations uses in the field. No pairing is needed; the bridge finds the drone as soon as it has power. A mission is refused while a cable is plugged in. Radio is only for boards without Bluetooth.</div></div>
+      <div><label>Mission altitude (m above launch)</label><input id="cruise" type="number" min="5" max="120" step="1">
+        <div class="muted" style="font-size:11.5px;margin-top:4px">Higher than every building and tree on the way.</div></div>
+      <div style="align-self:end"><button class="btn primary" onclick="saveCfg()">Save</button> <span id="cfgmsg" class="muted"></span></div>
+    </div>
+  </div>
+
+  <div class="modes">
+    <div class="mode" id="m_convert" onclick="selectMode('convert')"><span class="k">MODE 1</span>
+      <h2>Convert a Betaflight drone → ArduPilot</h2><p>Keeps the hardware. Backup, flash, load proven parameters, translate your Betaflight settings, calibrate, test.</p></div>
+    <div class="mode" id="m_fresh" onclick="selectMode('fresh')"><span class="k">MODE 2 <span class="beta">BETA</span></span>
+      <h2>Set up a freshly built drone</h2><p>Component checklist first, then the same flight setup. New, and not yet tested end to end on a real build.</p></div>
+  </div>
+
+  <div id="partsWrap" style="display:none">
+    <div class="card beta-note" style="margin-bottom:16px"><b>BETA.</b> The fresh-build path is new. The Betaflight conversion has been flown, but the wiring, UART, receiver and ESC steps here have only been checked in the simulator. Follow them with care, keep the props off until the bench arm test, and tell us what was wrong or missing. Contributions through the project's GitHub repository are welcome.</div>
+    <div class="card" style="margin-bottom:16px">
+      <h3>Components</h3>
+      <div class="parts">
+        <div><b class="ok">Essential</b><ul>
+          <li>Frame, 4 motors, 4-in-1 ESC <span class="why">5" 6S; must carry 0.5 kg extra</span></li>
+          <li>Flight controller in ArduPilot's list <span class="why">type its name in the board box at the top: the list shows every supported board</span></li>
+          <li>GPS with compass <span class="why">position + heading</span></li>
+          <li>RC transmitter + receiver <span class="why">your override, always wins</span></li>
+          <li>Bluetooth in the FC or a telemetry radio <span class="why">to start missions from the laptop</span></li>
+          <li>Dropper (3D print) + standard MG90S <span class="why">positional, never 360°</span></li>
+          <li>Extinguisher ball ≤ 0.5 kg, 6S battery + charger, strap</li></ul></div>
+        <div><b class="warn">Optional</b><ul>
+          <li>FPV camera + VTX + goggles <span class="why">only for manual flying out of sight</span></li>
+          <li>Buzzer / LEDs</li></ul>
+          <div class="muted" style="font-size:12.5px;margin-top:8px">Build it, plug in USB only, then continue from the firmware step.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="stepsWrap" style="display:none">
+    <div class="prog"><span id="progtxt">0 / 0 done</span><div class="bar"><i id="progbar"></i></div><button class="btn sm" onclick="resetProg()">reset</button></div>
+    <div class="steps" id="steps"></div>
+  </div>
+</div>
+
+<div id="out"><div class="oh"><b id="otitle">Output</b><span id="ostate" class="pill">running</span>
+  <span style="flex:1"></span><button class="btn sm danger" onclick="stopJob()">■ Stop</button><button class="btn sm" onclick="hideOut()">✕</button></div>
+  <pre id="olog"></pre></div>
+
+<script>
+document.addEventListener('click',e=>{const m=document.getElementById('menu');if(!m.contains(e.target))m.classList.remove('open');});
+const R=(tool,label,cls,confirmMsg)=>({tool,label,cls:cls||'',confirmMsg});
+let CFG={}, ST={}, BOARDS=[];
+function cmd(o){return fetch('/api/cmd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)}).then(r=>r.json()).then(j=>{if(!j.ok&&j.err)toast(j.err);return j;}).catch(()=>({ok:false,err:'console not reachable'}));}
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fcsays=(re)=>{const l=(ST.msgs||[]).find(x=>re.test(x));return l?l.replace(/^\d\d:\d\d:\d\d\s+/,''):'–';};
+
+/* ================= steps ================= */
+/* ================= motors ================= */
+// ArduPilot's motor-test letters go clockwise from the front-right on EVERY frame type: A front-right,
+// B rear-right, C rear-left, D front-left. Which MotorN (SERVOx_FUNCTION 33-36) sits on which corner
+// depends on FRAME_TYPE (checked against AP_MotorsMatrix.cpp):
+//   1  (X):           Motor1 FR, Motor2 RL, Motor3 FL, Motor4 RR
+//   12 / 18 (BF_X):   Motor1 RR, Motor2 FR, Motor3 RL, Motor4 FL   (Betaflight's numbering)
+const CORNER_OF={A:'FR',B:'RR',C:'RL',D:'FL'};
+const CORNER_NAME={FR:'front-right',RR:'rear-right',RL:'rear-left',FL:'front-left'};
+const NUM_BY_FRAME={1:{FR:1,RL:2,FL:3,RR:4},12:{RR:1,FR:2,RL:3,FL:4},18:{RR:1,FR:2,RL:3,FL:4}};
+function frameType(){const ft=(ST.params||{}).FRAME_TYPE;return (ft===1||ft===12||ft===18)?ft:null;}
+function frameName(ft){const raw=(ST.params||{}).FRAME_TYPE;return {1:'X (ArduPilot numbering), props-in',12:'BetaFlight X, props-IN',18:'BetaFlight X reversed, props-OUT'}[ft]||(raw===undefined?'frame type not read yet (assuming props-in)':'FRAME_TYPE '+raw+' is not a quad-X layout. Choose props-in or props-out in the Frame step (the diagram assumes props-in)');}
+function cornerNum(corner,ft){return NUM_BY_FRAME[ft||frameType()||12][corner];}
+function cornerOfNum(n,ft){const t=NUM_BY_FRAME[ft||frameType()||12];for(const c in t)if(t[c]===n)return c;return '?';}
+// props-in: front-right and rear-left turn counter-clockwise (seen from above); props-out (18): all the other way
+function spinDir(corner,ft){ft=ft||frameType()||12;const ccw=(corner==='FR'||corner==='RL');return (ccw!==(ft===18))?'CCW':'CW';}
+const MVER={};
+function readMotorParams(){cmd({action:'get_params',names:['SERVO1_FUNCTION','SERVO2_FUNCTION','SERVO3_FUNCTION','SERVO4_FUNCTION','SERVO5_FUNCTION','SERVO6_FUNCTION','SERVO7_FUNCTION','SERVO8_FUNCTION','SERVO_BLH_RVMASK','SERVO_BLH_AUTO','FRAME_TYPE']});}
+function wireMotors(div){
+  const gate=div.querySelector('#mgate'), th=div.querySelector('#mth'), thv=div.querySelector('#mthv'), po=div.querySelector('#mpropson');
+  gate.onchange=()=>div.querySelectorAll('.mbtn').forEach(b=>b.disabled=!gate.checked);
+  th.oninput=()=>thv.textContent=th.value;
+  po.onchange=()=>{th.max=po.checked?1:20;if(po.checked)th.value=1;thv.textContent=th.value;};
+  div.querySelectorAll('.mbtn').forEach(b=>b.onclick=()=>{
+    const pct=parseFloat(th.value), ack=po.checked?'PROPS ON LOW':'PROPS OFF';
+    cmd({action:'motor_test',motor:b.dataset.m,pct,secs:2,ack});});
+  const tb=div.querySelector('#mver');
+  tb.innerHTML=Object.keys(CORNER_OF).map(m=>`<tr><td><b>${m}</b> <span class="muted">(should be ${CORNER_NAME[CORNER_OF[m]]}, <span id="m_dir_${m}">${spinDir(CORNER_OF[m])}</span>)</span></td>
+    <td><select data-m="${m}" data-k="pos"><option value="">?</option><option value="FR">front-right</option><option value="FL">front-left</option><option value="RR">rear-right</option><option value="RL">rear-left</option></select></td>
+    <td><select data-m="${m}" data-k="dir"><option value="">?</option><option value="y">yes</option><option value="n">no, the other way</option></select></td></tr>`).join('');
+  tb.querySelectorAll('select').forEach(sel=>{const k=sel.dataset.m+sel.dataset.k;if(MVER[k])sel.value=MVER[k];sel.onchange=()=>{MVER[k]=sel.value;verdict(div);};});
+  verdict(div);
+}
+function outputFor(motorNum){const p=ST.params||{};for(let x=1;x<=8;x++)if(p['SERVO'+x+'_FUNCTION']===32+motorNum)return x;return null;}
+function verdict(div){
+  const out=[]; let all=true, remap=false, rev=false;
+  for(const m of Object.keys(CORNER_OF)){
+    const want=CORNER_OF[m], pos=MVER[m+'pos'], dir=MVER[m+'dir'];
+    if(!(pos===want&&dir==='y'))all=false;
+    if(pos&&pos!==want){remap=true;out.push(`<div class="warn">${m} spun the ${CORNER_NAME[pos]} motor instead of ${CORNER_NAME[want]} → fixable in software (Apply mapping) or by swapping ESC signal wires.</div>`);}
+    if(dir==='n'){rev=true;out.push(`<div class="warn">${m} turns the wrong way → software reverse (DShot ESCs) or swap any two of its three motor wires.</div>`);}
+  }
+  if(all)out.push('<div class="ok">All four correct. Mark this step done.</div>');
+  else if(!out.length)out.push('<span class="muted">Spin each motor and answer both questions.</span>');
+  div.querySelector('#mverdict').innerHTML=out.join('');
+  div.querySelector('#mapbtn').style.display=remap?'inline-flex':'none';
+  div.querySelector('#revbtn').style.display=rev?'inline-flex':'none';
+  const p=ST.params||{};
+  div.querySelector('#mmap').textContent=[1,2,3,4].map(x=>{const f=p['SERVO'+x+'_FUNCTION'];
+    return 'out'+x+'→'+((f>=33&&f<=36)?('Motor'+(f-32)+' '+CORNER_NAME[cornerOfNum(f-32)]):(f===undefined?'?':f));}).join(' · ')
+    +(p.SERVO_BLH_RVMASK!==undefined?' · reversed mask '+p.SERVO_BLH_RVMASK:'')+' · frame: '+frameName(frameType());
+}
+function applyMapping(){
+  const upd={}, taken={};
+  for(const m of Object.keys(CORNER_OF)){const pos=MVER[m+'pos'];if(!pos)continue;
+    const x=outputFor(cornerNum(CORNER_OF[m])); if(!x){alert('Read the current outputs first (open this step with the drone linked).');return;}
+    const want=32+cornerNum(pos); if(taken[want]){alert('Two letters point at the same corner. Check your answers.');return;} taken[want]=1; upd['SERVO'+x+'_FUNCTION']=want;}
+  if(!Object.keys(upd).length)return;
+  if(confirm('Write:\n'+Object.entries(upd).map(([k,v])=>k+' = '+v).join('\n')+'\n\nThe FC reboots; then re-run the motor test.'))
+    cmd({action:'set_params',params:upd}).then(()=>{for(const m of Object.keys(CORNER_OF))MVER[m+'pos']='';setTimeout(()=>cmd({action:'reboot'}),2500);setTimeout(readMotorParams,12000);});
+}
+function applyReverse(){
+  const p=ST.params||{}; let mask=p.SERVO_BLH_RVMASK||0; const names=[];
+  for(const m of Object.keys(CORNER_OF)){if(MVER[m+'dir']!=='n')continue;const x=outputFor(cornerNum(CORNER_OF[m]));if(!x){alert('Read the outputs first.');return;}mask^=(1<<(x-1));names.push(m+' (output '+x+')');}
+  if(!names.length)return;
+  if(confirm('Reverse '+names.join(', ')+' via DShot commands (SERVO_BLH_RVMASK='+mask+', SERVO_BLH_AUTO=1)?\nThe FC reboots afterwards; then re-test. Works with BLHeli_32 / AM32 / Bluejay ESCs.'))
+    cmd({action:'set_params',params:{SERVO_BLH_AUTO:1,SERVO_BLH_RVMASK:mask}}).then(()=>{for(const m of Object.keys(CORNER_OF))MVER[m+'dir']='';setTimeout(()=>cmd({action:'reboot'}),2500);});
+}
+
+/* ================= diagrams (inline SVG in the theme colours) ================= */
+const SVGDEFS='<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ededf0"/></marker></defs>';
+function arcArrow(cx,cy,R,cw){const t=Math.PI/180,a1=cw?210:330,a2=cw?330:210;
+  const x1=cx+R*Math.cos(a1*t),y1=cy+R*Math.sin(a1*t),x2=cx+R*Math.cos(a2*t),y2=cy+R*Math.sin(a2*t);
+  return `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)}A${R} ${R} 0 0 ${cw?1:0} ${x2.toFixed(1)} ${y2.toFixed(1)}" fill="none" stroke="var(--text)" stroke-width="2.5" marker-end="url(#ah)"/>`;}
+// top view of the quad: nose up, motor letters, spin arrows for the given (or current) frame type
+function quadSvg(o){o=o||{};const ft=o.ft||frameType()||12,S=300,c=150,arm=82,r=30;
+  const P={FR:[c+arm,c-arm],FL:[c-arm,c-arm],RR:[c+arm,c+arm],RL:[c-arm,c+arm]},L={FR:'A',RR:'B',RL:'C',FL:'D'};
+  let s=`<svg viewBox="0 0 ${S} ${S}" style="width:${o.w||260}px;max-width:100%">`+SVGDEFS;
+  for(const k in P)s+=`<line x1="${c}" y1="${c}" x2="${P[k][0]}" y2="${P[k][1]}" stroke="var(--line2)" stroke-width="12" stroke-linecap="round"/>`;
+  s+=`<rect x="${c-24}" y="${c-24}" width="48" height="48" fill="var(--panel)" stroke="var(--text)" stroke-width="1.5"/>`;
+  s+=`<path d="M${c} ${c-16}L${c-9} ${c+4}L${c} ${c-2}L${c+9} ${c+4}z" fill="var(--text)"/><text x="${c}" y="${c+18}" class="tiny" text-anchor="middle">FC</text>`;
+  s+=`<line x1="${c}" y1="${c-arm+6}" x2="${c}" y2="24" stroke="var(--text)" stroke-width="2" marker-end="url(#ah)"/><text x="${c}" y="14" class="lab" text-anchor="middle">NOSE</text>`;
+  for(const k in P){const [x,y]=P[k],d=spinDir(k,ft);
+    s+=`<circle cx="${x}" cy="${y}" r="${r}" fill="var(--panel2)" stroke="var(--line2)" stroke-width="1.5"/>`+arcArrow(x,y,r+9,d==='CW');
+    s+=`<text x="${x}" y="${y+7}" class="big" text-anchor="middle">${o.nums?('M'+cornerNum(k,ft)):L[k]}</text>`;
+    s+=`<text x="${x}" y="${y>c?y+r+24:y-r-16}" class="tiny" text-anchor="middle">${CORNER_NAME[k]} · ${d}${o.props?' prop':''}</text>`;}
+  return s+'</svg>';}
+// one of the six accelerometer poses, drawn from behind (L/R labelled) or from the left side (nose marked)
+function poseSvg(kind,capOverride){
+  const cap=capOverride||{level:'1 · level',left:'2 · left side down',right:'3 · right side down',nosedown:'4 · nose down',noseup:'5 · nose up',upside:'6 · upside down'}[kind];
+  const side=(kind==='nosedown'||kind==='noseup');
+  const rot={level:0,left:-90,right:90,upside:180,nosedown:90,noseup:-90}[kind];
+  const ty={level:78,upside:78,left:56,right:56,nosedown:46,noseup:58}[kind];
+  const t=rot*Math.PI/180, rp=(x,y)=>[60+x*Math.cos(t)-y*Math.sin(t), ty+x*Math.sin(t)+y*Math.cos(t)];
+  let g=`<g transform="translate(60,${ty}) rotate(${rot})"><rect x="-34" y="-5" width="68" height="10" fill="var(--panel2)" stroke="var(--text)" stroke-width="1.5"/>`+
+    `<rect x="-8" y="-14" width="16" height="9" fill="var(--text)"/><rect x="-20" y="5" width="4" height="9" fill="var(--muted)"/><rect x="16" y="5" width="4" height="9" fill="var(--muted)"/>`+
+    (side?`<path d="M34 0L46 -6L46 6z" fill="var(--text)"/>`:`<rect x="-38" y="-9" width="6" height="18" fill="var(--text)"/><rect x="32" y="-9" width="6" height="18" fill="var(--text)"/>`)+`</g>`;
+  if(side){let [nx,ny]=rp(52,0);const low=ny>82;g+=`<text x="${(low?nx+8:nx).toFixed(0)}" y="${Math.min(ny+3,88).toFixed(0)}" class="tiny" text-anchor="${low?'start':'middle'}">nose</text>`;}
+  else{const [lx,ly]=rp(-46,0),[rx,ry]=rp(46,0);g+=`<text x="${lx.toFixed(0)}" y="${(ly+3).toFixed(0)}" class="lab" text-anchor="middle">L</text><text x="${rx.toFixed(0)}" y="${(ry+3).toFixed(0)}" class="lab" text-anchor="middle">R</text>`;}
+  return `<div class="pose"><svg viewBox="0 0 120 100" style="width:120px"><line x1="4" y1="93" x2="116" y2="93" stroke="var(--line2)" stroke-width="2"/>${g}</svg><div class="cap">${cap}</div><div class="tiny muted">${side?'seen from the left side':'seen from behind'}</div></div>`;}
+// CW and CCW props: the thick edge is the raised leading edge
+function propSvg(){
+  const half=(cx,sign,thickTop)=>{const x1=cx+sign*44;
+    return `<path d="M${cx} 40 C${cx+sign*8} 30 ${cx+sign*30} 30 ${x1} 40" fill="none" stroke="var(--text)" stroke-width="${thickTop?4:1}"/><path d="M${cx} 40 C${cx+sign*8} 50 ${cx+sign*30} 50 ${x1} 40" fill="none" stroke="var(--text)" stroke-width="${thickTop?1:4}"/>`;};
+  const prop=(cx,cw,label)=>`${half(cx,-1,cw)}${half(cx,1,!cw)}<circle cx="${cx}" cy="40" r="5" fill="var(--text)"/>${arcArrow(cx,40,17,cw)}<text x="${cx}" y="74" class="lab" text-anchor="middle">${label}</text>`;
+  return `<svg viewBox="0 0 260 84" style="width:260px;max-width:100%">${SVGDEFS}${prop(65,true,'CW prop')}${prop(195,false,'CCW prop')}</svg><div class="tiny muted">thick line = the raised leading edge, it goes first into the turn · lettering faces up · seen from above</div>`;}
+function fcSvg(){return `<svg viewBox="0 0 150 122" style="width:150px">${SVGDEFS}<rect x="35" y="22" width="80" height="80" fill="var(--panel2)" stroke="var(--text)" stroke-width="1.5"/>
+  <path d="M75 36L60 68L75 60L90 68z" fill="var(--text)"/><rect x="22" y="54" width="13" height="16" fill="var(--line2)" stroke="var(--text)"/><text x="12" y="50" class="tiny" text-anchor="middle">USB</text>
+  <line x1="75" y1="20" x2="75" y2="6" stroke="var(--text)" stroke-width="2" marker-end="url(#ah)"/><text x="75" y="118" class="tiny" text-anchor="middle">FC arrow → nose</text></svg>`;}
+function txSvg(){const box=(x,l1,l2)=>`<rect x="${x}" y="14" width="90" height="70" fill="var(--panel2)" stroke="var(--line2)"/><line x1="${x+45}" y1="20" x2="${x+45}" y2="78" stroke="var(--line)"/><line x1="${x+6}" y1="49" x2="${x+84}" y2="49" stroke="var(--line)"/><circle cx="${x+45}" cy="49" r="7" fill="var(--text)"/><text x="${x+45}" y="10" class="tiny" text-anchor="middle">${l1}</text><text x="${x+45}" y="98" class="tiny" text-anchor="middle">${l2}</text>`;
+  return `<svg viewBox="0 0 230 104" style="width:230px">${box(10,'THROTTLE up / down','YAW left / right')}${box(130,'PITCH forward / back','ROLL left / right')}</svg><div class="tiny muted">Mode 2 transmitter (the usual one). "Pitch forward" = right stick pushed up.</div>`;}
+function horizonSvg(){return `<svg viewBox="-60 -60 120 120" style="width:120px"><clipPath id="hzc"><circle r="54"/></clipPath><g clip-path="url(#hzc)"><g id="hzg"><rect x="-200" y="-200" width="400" height="200" fill="#1c1c20"/><rect x="-200" y="0" width="400" height="200" fill="#3d3d45"/><line x1="-200" y1="0" x2="200" y2="0" stroke="var(--text)" stroke-width="1.5"/><line x1="-16" y1="-24" x2="16" y2="-24" stroke="var(--muted)"/><line x1="-16" y1="24" x2="16" y2="24" stroke="var(--muted)"/></g></g>
+  <circle r="54" fill="none" stroke="var(--line2)" stroke-width="1.5"/><path d="M-26 0H-10L0 8L10 0H26" fill="none" stroke="var(--warn)" stroke-width="2.5"/><circle r="2" fill="var(--warn)"/></svg>`;}
+function roseSvg(){return `<svg viewBox="-60 -60 120 120" style="width:120px"><circle r="54" fill="var(--panel2)" stroke="var(--line2)" stroke-width="1.5"/><text x="0" y="-40" class="lab" text-anchor="middle">N</text><text x="44" y="4" class="tiny" text-anchor="middle">E</text><text x="0" y="48" class="tiny" text-anchor="middle">S</text><text x="-44" y="4" class="tiny" text-anchor="middle">W</text><g id="needle"><path d="M0 -34L-6 6L0 0L6 6z" fill="var(--text)"/></g><circle r="2.5" fill="var(--text)"/></svg>`;}
+function havDist(a,b,c,d){const R=6371000,t=Math.PI/180,x=(c-a)*t,y=(d-b)*t;const h=Math.sin(x/2)**2+Math.cos(a*t)*Math.cos(c*t)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+
+/* ================= FC orientation check ================= */
+// ArduPilot Rotation enum -> (roll, pitch, yaw) the sensor frame is rotated by; body = Rz(yaw)·Ry(pitch)·Rx(roll) · sensor
+const ROT_DEF={0:[0,0,0],1:[0,0,45],2:[0,0,90],3:[0,0,135],4:[0,0,180],5:[0,0,225],6:[0,0,270],7:[0,0,315],8:[180,0,0],9:[180,0,45],10:[180,0,90],11:[180,0,135],12:[0,180,0],13:[180,0,225],14:[180,0,270],15:[180,0,315],16:[90,0,0],17:[90,0,45],18:[90,0,90],19:[90,0,135],20:[270,0,0],21:[270,0,45],22:[270,0,90],23:[270,0,135],24:[0,90,0],25:[0,270,0]};
+const ROT_NAME={0:'none (arrow to the nose)',1:'yaw 45',2:'yaw 90 (arrow to the RIGHT)',3:'yaw 135',4:'yaw 180 (arrow to the TAIL)',5:'yaw 225',6:'yaw 270 (arrow to the LEFT)',7:'yaw 315',8:'roll 180 (upside down)',9:'roll 180 + yaw 45',10:'roll 180 + yaw 90',11:'roll 180 + yaw 135',12:'pitch 180 (upside down, arrow to the tail)',13:'roll 180 + yaw 225',14:'roll 180 + yaw 270',15:'roll 180 + yaw 315',16:'roll 90 (on its side)',17:'roll 90 + yaw 45',18:'roll 90 + yaw 90',19:'roll 90 + yaw 135',20:'roll 270 (on its side)',21:'roll 270 + yaw 45',22:'roll 270 + yaw 90',23:'roll 270 + yaw 135',24:'pitch 90 (standing)',25:'pitch 270 (standing)'};
+function rotMat(r,p,y){const t=Math.PI/180,cr=Math.cos(r*t),sr=Math.sin(r*t),cp=Math.cos(p*t),sp=Math.sin(p*t),cy=Math.cos(y*t),sy=Math.sin(y*t);
+  const Rx=[[1,0,0],[0,cr,-sr],[0,sr,cr]],Ry=[[cp,0,sp],[0,1,0],[-sp,0,cp]],Rz=[[cy,-sy,0],[sy,cy,0],[0,0,1]];
+  const mm=(A,B)=>A.map(row=>[0,1,2].map(j=>row[0]*B[0][j]+row[1]*B[1][j]+row[2]*B[2][j]));return mm(Rz,mm(Ry,Rx));}
+const matVec=(M,v)=>M.map(row=>row[0]*v[0]+row[1]*v[1]+row[2]*v[2]);
+const matT=M=>[0,1,2].map(i=>[0,1,2].map(j=>M[j][i]));
+function gVec(roll,pitch){const t=Math.PI/180;return [-Math.sin(pitch*t),Math.cos(pitch*t)*Math.sin(roll*t),Math.cos(pitch*t)*Math.cos(roll*t)];}
+const angBetween=(a,b)=>Math.acos(Math.max(-1,Math.min(1,a[0]*b[0]+a[1]*b[1]+a[2]*b[2])))*180/Math.PI;
+const ORI={};
+function oriBest(cur){
+  // observed gravity (in the frame the FC reports now) for the three poses
+  const obs={};for(const k of ['level','nosedown','rightdown'])obs[k]=gVec(ORI[k].roll,ORI[k].pitch);
+  const tilt={nosedown:angBetween(obs.nosedown,obs.level),rightdown:angBetween(obs.rightdown,obs.level)};
+  if(tilt.nosedown<12||tilt.rightdown<12)return {small:true,tilt};
+  // what the body really did: level, nose down by that tilt, right side down by that tilt
+  const exp={level:[0,0,1],nosedown:gVec(0,-tilt.nosedown),rightdown:gVec(tilt.rightdown,0)};
+  const Rk=rotMat(...(ROT_DEF[cur]||[0,0,0]));
+  const errFor=c=>{const R=rotMat(...ROT_DEF[c]);let e=0;for(const k in exp)e+=angBetween(matVec(Rk,matVec(matT(R),exp[k])),obs[k]);return e/3;};
+  let best=0,be=1e9;for(const c in ROT_DEF){const e=errFor(+c);if(e<be-0.01){be=e;best=+c;}}
+  return {best,err:be,errCur:errFor(cur),tilt};}
+function oriCapture(k){const a=ST.attitude;if(!ST.connected||!a){alert(linkWord());return;}
+  ORI[k]={roll:a.roll,pitch:a.pitch};const n={level:1,nosedown:2,rightdown:3}[k];
+  document.getElementById('o_c'+n).textContent=' ✓ '+a.roll.toFixed(0)+'° / '+a.pitch.toFixed(0)+'°';}
+function oriAnalyse(){
+  if(!ORI.level||!ORI.nosedown||!ORI.rightdown){alert('Capture all three poses first.');return;}
+  const cur=(ST.params||{}).AHRS_ORIENTATION;
+  if(cur===undefined){cmd({action:'get_params',names:['AHRS_ORIENTATION']});alert('Reading AHRS_ORIENTATION from the drone. Click again in 2 s.');return;}
+  const r=oriBest(cur), v=document.getElementById('o_verdict'), fix=document.getElementById('o_fix'); fix.style.display='none'; ORI.suggest=undefined;
+  if(r.small){v.innerHTML='<span class="tag-warn">⚠ tilt too small ('+r.tilt.nosedown.toFixed(0)+'° / '+r.tilt.rightdown.toFixed(0)+'°): tilt a clear 30–45° for poses 2 and 3 and capture again.</span>';return;}
+  if(r.err>12){v.innerHTML='<span class="tag-bad">✗ readings inconsistent ('+r.err.toFixed(0)+'° off for every possible mounting): hold still during each capture, tilt only one way at a time, retry.</span>';return;}
+  if(r.best===cur){v.innerHTML='<span class="tag-ok">✓ PASS. The FC is mounted as configured ('+ROT_NAME[cur]+'): nose down reads nose down, right side down reads right.</span>';return;}
+  ORI.suggest=r.best;
+  v.innerHTML='<span class="tag-warn">⚠ the FC is mounted rotated: <b>'+ROT_NAME[r.best]+'</b>. AHRS_ORIENTATION should be '+r.best+' (now '+cur+'). Match '+r.err.toFixed(0)+'° vs '+r.errCur.toFixed(0)+'° as configured.</span>';
+  fix.textContent='▶ Write AHRS_ORIENTATION = '+r.best+' and reboot';fix.style.display='inline-flex';}
+function oriFix(){if(ORI.suggest===undefined)return;
+  if(confirm('Write AHRS_ORIENTATION = '+ORI.suggest+' ('+ROT_NAME[ORI.suggest]+')?\nThe FC reboots; then redo the three captures (it must say PASS) and redo Level in the accelerometer step.'))
+    cmd({action:'set_params',params:{AHRS_ORIENTATION:ORI.suggest}}).then(()=>{for(const k of ['level','nosedown','rightdown'])delete ORI[k];[1,2,3].forEach(n=>document.getElementById('o_c'+n).textContent='');document.getElementById('o_fix').style.display='none';setTimeout(()=>cmd({action:'reboot'}),2500);});}
+function oriTick(){const g=id=>document.getElementById(id);if(!g('o_roll'))return;const a=ST.attitude,p=ST.params||{};
+  g('o_roll').textContent=a?a.roll.toFixed(1)+'°':'–';g('o_pitch').textContent=a?a.pitch.toFixed(1)+'°':'–';g('o_yaw').textContent=a?a.yaw.toFixed(0)+'°':'–';
+  g('o_cur').textContent=p.AHRS_ORIENTATION===undefined?'–':(p.AHRS_ORIENTATION+' = '+(ROT_NAME[p.AHRS_ORIENTATION]||'?'));
+  const hz=g('hzg');if(hz&&a)hz.setAttribute('transform','rotate('+(-a.roll).toFixed(1)+') translate(0,'+(a.pitch*1.2).toFixed(1)+')');}
+
+/* ================= compass heading check ================= */
+const HDG={};
+function hdgNorth(){const a=ST.attitude;if(!ST.connected||!a){alert(linkWord());return;}
+  const p=ST.params||{},cur=p.COMPASS_ORIENT,err=((a.yaw+180)%360)-180,v=document.getElementById('hd_verdict'),fx=document.getElementById('hd_fix');
+  HDG.north=a.yaw;HDG.ok=false;HDG.suggest=null;fx.style.display='none';
+  if(Math.abs(err)<=25){HDG.ok=true;v.innerHTML='<span class="tag-ok">✓ reads '+a.yaw.toFixed(0)+'° with the nose north. Now the turn test.</span>';return;}
+  const q=Math.round((((a.yaw%360)+360)%360)/45)*45%360, en={0:0,45:1,90:2,135:3,180:4,225:5,270:6,315:7}[q];
+  if(cur){v.innerHTML='<span class="tag-warn">⚠ reads '+a.yaw.toFixed(0)+'° while pointing north (error '+err.toFixed(0)+'°) and COMPASS_ORIENT is already '+cur+': use "reset orientation & recalibrate" above (outdoors, GPS fix), reboot, check again.</span>';return;}
+  HDG.suggest=en;
+  v.innerHTML='<span class="tag-warn">⚠ reads '+a.yaw.toFixed(0)+'° while pointing north (error '+err.toFixed(0)+'°): the GPS/compass module is probably mounted turned by '+q+'°. Either recalibrate with automatic orientation (button above), or write COMPASS_ORIENT = '+en+', reboot, recalibrate.</span>';
+  fx.textContent='▶ Write COMPASS_ORIENT = '+en;fx.style.display='inline-flex';}
+function hdgTurn(){const a=ST.attitude;if(!a||HDG.north===undefined){alert('Do the north check first (drone linked).');return;}
+  let d=a.yaw-HDG.north;d=((d+540)%360)-180;const v=document.getElementById('hd_turn');
+  if(d>50&&d<130)v.innerHTML='<span class="tag-ok">✓ heading rose by '+d.toFixed(0)+'° when you turned right. The compass turns the right way.</span>';
+  else if(d<-50&&d>-130)v.innerHTML='<span class="tag-bad">✗ heading FELL by '+(-d).toFixed(0)+'° when you turned right: the compass is mirrored (module upside down). Recalibrate with automatic orientation; if that keeps failing, COMPASS_ORIENT needs a "roll 180" value (8–15).</span>';
+  else v.innerHTML='<span class="tag-warn">⚠ change was '+d.toFixed(0)+'°: turn a clear 90° to the right (clockwise seen from above), then click again.</span>';}
+function hdgFix(){if(HDG.suggest===null||HDG.suggest===undefined)return;
+  if(confirm('Write COMPASS_ORIENT = '+HDG.suggest+'?\nThen reboot and calibrate the compass again.'))cmd({action:'set_params',params:{COMPASS_ORIENT:HDG.suggest}});}
+function magcalAuto(){cmd({action:'set_params',params:{COMPASS_AUTO_ROT:2}}).then(()=>setTimeout(()=>cmd({action:'magcal_start'}),1200));}
+function magcalReset(){if(confirm('Reset COMPASS_ORIENT to 0 and calibrate with automatic orientation detection (outdoors, with GPS fix)?'))
+  cmd({action:'set_params',params:{COMPASS_ORIENT:0,COMPASS_AUTO_ROT:2}}).then(()=>setTimeout(()=>cmd({action:'magcal_start'}),1500));}
+function hdgTick(){const g=id=>document.getElementById(id);if(!g('hd_val'))return;const a=ST.attitude,p=ST.params||{};
+  g('hd_val').textContent=a?a.yaw.toFixed(0)+'°':'–';const n=g('needle');if(n&&a)n.setAttribute('transform','rotate('+a.yaw.toFixed(1)+')');
+  g('hd_cur').textContent=(p.COMPASS_ORIENT===undefined?'–':p.COMPASS_ORIENT)+' / '+(p.COMPASS_AUTO_ROT===undefined?'–':p.COMPASS_AUTO_ROT);}
+
+/* ================= radio failsafe test ================= */
+const FSEV=[];let FS_last=null;
+function fsRead(){cmd({action:'get_params',names:['FS_THR_ENABLE','FS_THR_VALUE','RC3_MIN','FS_OPTIONS']});}
+function fsTick(){const g=id=>document.getElementById(id);if(!g('fs_rx'))return;const rx=(ST.sensors||{}).rc,fs=ST.rc_fs,p=ST.params||{};
+  g('fs_rx').innerHTML=!ST.connected?linkWord():(rx===false?'<span class="tag-bad">LOST</span>':(rx===true?'<span class="tag-ok">OK · '+(ST.rc_count||0)+' channels</span>':'–'));
+  g('fs_fc').innerHTML=fs===true?'<span class="tag-warn">ACTIVE ("Radio Failsafe")</span>':(fs===false?'<span class="tag-ok">cleared</span>':'–');
+  const st=!ST.connected?null:((rx===false||fs===true)?'lost':(rx===true?'ok':null));
+  if(st&&st!==FS_last){if(FS_last!==null||st==='lost')FSEV.push(new Date().toLocaleTimeString()+' '+(st==='lost'?'radio LOST → failsafe':'radio back → cleared'));FS_last=st;if(FSEV.length>6)FSEV.shift();}
+  g('fs_log').textContent=FSEV.length?FSEV.join('   ·   '):'waiting for you to switch the transmitter off…';
+  g('fs_en').textContent=p.FS_THR_ENABLE===undefined?'–':({0:'0 = OFF (dangerous)',1:'1 = return home',2:'2 = finish the mission, else return home',3:'3 = land',4:'4 = SmartRTL or return home',5:'5 = SmartRTL or land',6:'6 = Auto DO_LAND_START or return home',7:'7 = brake or land'}[p.FS_THR_ENABLE]||p.FS_THR_ENABLE);
+  g('fs_val').textContent=(p.FS_THR_VALUE===undefined?'–':p.FS_THR_VALUE)+' / '+(p.RC3_MIN===undefined?'–':p.RC3_MIN);
+  if(g('fs_pol'))g('fs_pol').textContent=p.FS_OPTIONS===undefined?'–':((p.FS_OPTIONS&1)?'mission continues on radio loss':'mission returns home on radio loss');
+  const bad=[];if(p.FS_THR_ENABLE!==undefined&&p.FS_THR_ENABLE!==1)bad.push('FS_THR_ENABLE must be 1 (return home)');
+  if(p.FS_THR_VALUE!==undefined&&p.RC3_MIN!==undefined&&!(p.FS_THR_VALUE<p.RC3_MIN-5&&p.FS_THR_VALUE>=910))bad.push('FS_THR_VALUE must sit below the calibrated throttle minimum');
+  g('fs_fix').style.display=bad.length?'inline-flex':'none';
+  const seen=FSEV.some(x=>/LOST/.test(x))&&FSEV.some(x=>/back/.test(x));
+  g('fs_verdict').innerHTML=bad.length?'<span class="tag-bad">✗ '+bad.join(' · ')+'</span>':(seen?'<span class="tag-ok">✓ PASS. Loss detected and cleared, settings correct.</span>':'<span class="muted">settings '+(p.FS_THR_ENABLE===undefined?'not read yet':'OK')+'. Now switch the transmitter off, wait 2 s, switch it on again.</span>');}
+function fsPolicy(keep){const p=ST.params||{};if(p.FS_OPTIONS===undefined){fsRead();alert('Reading FS_OPTIONS. Click again in 2 s.');return;}
+  const v=keep?((p.FS_OPTIONS|1)>>>0):((p.FS_OPTIONS&~1)>>>0);
+  if(confirm((keep?'Autonomous missions CONTINUE if the radio drops':'Autonomous missions RETURN HOME if the radio drops')+' (FS_OPTIONS = '+v+')?'))cmd({action:'set_params',params:{FS_OPTIONS:v}}).then(()=>setTimeout(fsRead,1500));}
+function fsFix(){const p=ST.params||{},u={FS_THR_ENABLE:1};if(p.RC3_MIN!==undefined)u.FS_THR_VALUE=Math.max(910,Math.round(p.RC3_MIN-20));
+  if(confirm('Write '+Object.entries(u).map(([k,v])=>k+' = '+v).join(', ')+'?'))cmd({action:'set_params',params:u}).then(()=>setTimeout(fsRead,1500));}
+
+/* ================= battery ================= */
+function batRead(){cmd({action:'get_params',names:['BATT_MONITOR','BATT_VOLT_MULT','BATT_AMP_PERVLT','BATT_CAPACITY','BATT_ARM_VOLT','BATT_LOW_VOLT','BATT_CRT_VOLT']});}
+function batTick(){const g=id=>document.getElementById(id);if(!g('b_v'))return;const p=ST.params||{};
+  g('b_v').textContent=ST.connected?(ST.batt_v.toFixed(2)+' V'):linkWord();
+  g('b_a').textContent=(ST.batt_a===null||ST.batt_a===undefined)?'–':(ST.batt_a.toFixed(1)+' A');
+  g('b_mult').textContent=p.BATT_VOLT_MULT===undefined?'–':p.BATT_VOLT_MULT.toFixed(3);
+  g('b_lim').textContent=p.BATT_ARM_VOLT===undefined?'–':(p.BATT_ARM_VOLT.toFixed(1)+' / '+p.BATT_LOW_VOLT.toFixed(1)+' / '+p.BATT_CRT_VOLT.toFixed(1)+' V');
+  if(p.BATT_CAPACITY!==undefined&&!g('b_cap').dataset.touched)g('b_cap').value=p.BATT_CAPACITY;
+  if(p.BATT_MONITOR===0)g('b_verdict').innerHTML='<span class="tag-bad">✗ BATT_MONITOR is 0: the drone is not measuring the battery at all. Load the parameter set first.</span>';
+  else if(ST.connected&&ST.batt_v<5)g('b_verdict').innerHTML='<span class="tag-warn">⚠ no battery voltage: plug the battery in (USB alone does not power the sensor).</span>';
+  else if(!g('b_verdict').dataset.keep)g('b_verdict').innerHTML='<span class="muted">type the multimeter reading, then write.</span>';}
+function batCal(){const p=ST.params||{},meas=parseFloat(document.getElementById('b_meas').value),rep=ST.batt_v;
+  if(p.BATT_VOLT_MULT===undefined){batRead();alert('Reading the current multiplier from the drone. Click again in 2 s.');return;}
+  if(!(meas>5)||!(rep>5)){alert('Type the multimeter reading; the drone must report a voltage (battery plugged in).');return;}
+  const ratio=meas/rep;if(ratio<0.75||ratio>1.33){alert('Multimeter '+meas+' V vs drone '+rep.toFixed(2)+' V differ by more than 25 %. Check the battery sense wiring and BATT_VOLT_PIN before calibrating.');return;}
+  const nm=+(p.BATT_VOLT_MULT*ratio).toFixed(4);
+  if(confirm('Write BATT_VOLT_MULT = '+nm+' (was '+p.BATT_VOLT_MULT.toFixed(3)+')?\nThe reported voltage should then match the multimeter within 0.1 V.'))
+    cmd({action:'set_params',params:{BATT_VOLT_MULT:nm}}).then(()=>{const v=document.getElementById('b_verdict');v.dataset.keep='1';v.innerHTML='<span class="tag-ok">written. Compare the reported voltage with the meter again.</span>';setTimeout(batRead,1500);});}
+function batLimits(){const cells=parseInt(document.getElementById('b_cells').value),cap=parseInt(document.getElementById('b_cap').value)||0,apv=parseFloat(document.getElementById('b_apv').value);
+  const u={BATT_ARM_VOLT:+(cells*3.77).toFixed(2),BATT_LOW_VOLT:+(cells*3.5).toFixed(2),BATT_CRT_VOLT:+(cells*3.4).toFixed(2),BATT_FS_LOW_ACT:2,BATT_FS_CRT_ACT:1,BATT_FS_VOLTSRC:1};
+  if(cap>0)u.BATT_CAPACITY=cap;if(apv>0)u.BATT_AMP_PERVLT=apv;
+  if(confirm('Write for '+cells+'S:\n'+Object.entries(u).map(([k,v])=>k+' = '+v).join('\n')))cmd({action:'set_params',params:u}).then(()=>setTimeout(batRead,1500));}
+
+/* ================= safety fence / altitudes ================= */
+const SAF={est:null};
+function safRead(){cmd({action:'get_params',names:['FENCE_ENABLE','FENCE_TYPE','FENCE_ACTION','FENCE_ALT_MAX','FENCE_RADIUS','RTL_ALT_M']});
+  fetch('/api/estate').then(r=>r.json()).then(e=>{SAF.est=e;safTick(true);}).catch(()=>{});}
+function safRec(){const cruise=parseFloat((CFG&&CFG.cruise_alt)||25),site=CFG&&CFG.site;let maxd=0;const lines=[];
+  if(SAF.est&&site)for(const f of SAF.est.factories){const d=havDist(site.lat,site.lon,f.lat,f.lon);maxd=Math.max(maxd,d);lines.push(f.id+' '+Math.round(d)+' m');}
+  const rec={FENCE_ENABLE:1,FENCE_TYPE:7,FENCE_ACTION:1,FENCE_ALT_MAX:Math.min(120,Math.max(30,Math.round(cruise+20))),RTL_ALT_M:Math.max(15,Math.round(cruise)),FENCE_RADIUS:Math.min(2000,Math.max(150,Math.ceil(maxd/50)*50+100))};
+  return {rec,cruise,maxd,lines,site};}
+let SAF_sig='';
+function safTick(force){const tb=document.querySelector('#saf_tbl tbody');if(!tb)return;const p=ST.params||{},{rec,cruise,maxd,lines,site}=safRec();
+  const sig=JSON.stringify([rec,Object.keys(rec).map(k=>p[k])]);if(!force&&sig===SAF_sig)return;SAF_sig=sig;
+  const why={FENCE_ENABLE:'the fence is what stops a fly-away',FENCE_TYPE:'7 = ceiling + circle + polygon',FENCE_ACTION:'1 = return home when the fence is hit',FENCE_ALT_MAX:'mission altitude '+cruise+' m + 20 m headroom',RTL_ALT_M:'return home at least as high as the mission flies',FENCE_RADIUS:'farthest factory '+Math.round(maxd)+' m from the site + margin'};
+  const okFor=(k,cur)=>k==='FENCE_ALT_MAX'?cur>=cruise+5:(k==='RTL_ALT_M'?cur>=cruise-1:(k==='FENCE_RADIUS'?cur>=maxd+50:cur===rec[k]));
+  tb.innerHTML=Object.keys(rec).map(k=>{const cur=p[k];return '<tr><td><code>'+k+'</code></td><td class="'+(cur===undefined?'muted':(okFor(k,cur)?'ok':'bad'))+'">'+(cur===undefined?'–':cur)+'</td><td><b>'+rec[k]+'</b></td><td class="muted">'+why[k]+'</td></tr>';}).join('');
+  document.getElementById('saf_dist').textContent=site?('Distances from the site pin: '+(lines.join(' · ')||'no factories yet')+'. Mission altitude: '+cruise+' m.'):'No site saved yet (Operations → Menu → Set site location): the radius uses the minimum.';
+  const bad=Object.keys(rec).filter(k=>p[k]!==undefined&&!okFor(k,p[k]));
+  document.getElementById('saf_verdict').innerHTML=Object.keys(rec).every(k=>p[k]===undefined)?'<span class="muted">read the values from the drone first.</span>':(bad.length?'<span class="tag-bad">✗ '+bad.join(', ')+' would spoil a mission. Write the recommended values.</span>':'<span class="tag-ok">✓ fence and altitudes agree with the mission settings.</span>');}
+function safWrite(){const {rec}=safRec();if(confirm('Write:\n'+Object.entries(rec).map(([k,v])=>k+' = '+v).join('\n')))cmd({action:'set_params',params:rec}).then(()=>setTimeout(safRead,2000));}
+
+/* ================= after-flight health ================= */
+const HLT={minv:null,maxv:[0,0,0]};
+function hltRead(){cmd({action:'get_params',names:['MOT_THST_HOVER','COMPASS_OFS_X','COMPASS_OFS_Y','COMPASS_OFS_Z','INS_HNTCH_ENABLE','INS_HNTCH_MODE','INS_HNTCH_REF']});}
+function hltNotch(){const h=(ST.params||{}).MOT_THST_HOVER;if(h===undefined)return;if(confirm('Write INS_HNTCH_REF = '+h.toFixed(3)+' (the learned hover throttle)? Reboot afterwards.'))cmd({action:'set_params',params:{INS_HNTCH_REF:+h.toFixed(3)}}).then(()=>setTimeout(hltRead,1500));}
+function hltTick(){const g=id=>document.getElementById(id);
+  if(ST.armed&&ST.batt_v>5)HLT.minv=HLT.minv===null?ST.batt_v:Math.min(HLT.minv,ST.batt_v);
+  if(ST.vibe&&ST.armed)HLT.maxv=[0,1,2].map(i=>Math.max(HLT.maxv[i],[ST.vibe.x,ST.vibe.y,ST.vibe.z][i]));
+  if(!g('h_vibe'))return;const v=ST.vibe,e=ST.ekf,p=ST.params||{},cls=(x,a,b)=>x<a?'tag-ok':(x<b?'tag-warn':'tag-bad');
+  g('h_vibe').innerHTML=v?[v.x,v.y,v.z].map(x=>'<span class="'+cls(x,30,60)+'">'+x.toFixed(0)+'</span>').join(' / ')+(HLT.maxv[2]?' <span class="muted">(peak in flight '+HLT.maxv.map(x=>x.toFixed(0)).join(' / ')+')</span>':''):'–';
+  g('h_clip').innerHTML=v?'<span class="'+(v.clip?'tag-bad':'tag-ok')+'">'+v.clip+'</span>':'–';
+  g('h_ekf').innerHTML=e?['vel','pos_h','mag'].map(k=>'<span class="'+cls(e[k],0.5,0.8)+'">'+e[k].toFixed(2)+'</span>').join(' / '):'–';
+  g('h_hover').innerHTML=p.MOT_THST_HOVER===undefined?'–':'<span class="'+cls(p.MOT_THST_HOVER,0.5,0.65)+'">'+p.MOT_THST_HOVER.toFixed(2)+'</span> <span class="muted">(0.2–0.5 without the ball, under 0.6 with it)</span>';
+  const ofs=p.COMPASS_OFS_X===undefined?null:Math.sqrt(p.COMPASS_OFS_X**2+(p.COMPASS_OFS_Y||0)**2+(p.COMPASS_OFS_Z||0)**2);
+  g('h_ofs').innerHTML=ofs===null?'–':'<span class="'+cls(ofs,600,1000)+'">'+ofs.toFixed(0)+'</span> <span class="muted">(under 600 is healthy)</span>';
+  g('h_minv').textContent=HLT.minv===null?'– (fly with this page open; it records the lowest value)':HLT.minv.toFixed(2)+' V';
+  const nb=g('h_notch');if(nb&&g('h_ref')){const ref=p.INS_HNTCH_REF,h=p.MOT_THST_HOVER,on=p.INS_HNTCH_ENABLE,mode=p.INS_HNTCH_MODE;
+    const off=(ref!==undefined&&h!==undefined&&on===1&&mode===1&&Math.abs(ref-h)>0.03);
+    g('h_ref').innerHTML=ref===undefined?'–':((on===1?'on, ':'off, ')+(mode===1?'throttle-based, reference ':'mode '+mode+', reference ')+'<span class="'+(off?'tag-warn':'tag-ok')+'">'+ref.toFixed(3)+'</span>'+(off?'. It should equal the hover throttle':''));
+    nb.style.display=off?'inline-flex':'none';}
+  const bad=[];if(v&&Math.max(v.x,v.y,v.z)>=60)bad.push('vibration');if(v&&v.clip)bad.push('accel clipping');if(e&&(e.vel>=0.8||e.pos_h>=0.8||e.mag>=0.8))bad.push('position estimate');if(ofs!==null&&ofs>=1000)bad.push('compass offsets');
+  g('h_verdict').innerHTML=!ST.connected?linkWord():(bad.length?'<span class="tag-bad">✗ fix before flying missions: '+bad.join(', ')+'</span>':'<span class="tag-ok">✓ nothing alarming right now</span>');}
+
+/* ================= bench arm test ================= */
+function atTick(){const g=id=>document.getElementById(id);if(!g('at_mode'))return;
+  g('at_mode').textContent=ST.connected?ST.mode:linkWord();
+  g('at_arm').innerHTML=ST.connected?(ST.armed?'<span class="tag-warn">ARMED</span>':'<span class="tag-ok">disarmed</span>'):'–';
+  g('at_obj').innerHTML=(ST.prearm_msgs||[]).length?'<span class="tag-bad">'+ST.prearm_msgs.map(esc).join(' · ')+'</span>':(ST.connected?'<span class="tag-ok">nothing</span>':'–');}
+
+/* ================= frame-aware labels ================= */
+let LAST_FT='';
+function motorsTick(){const ft=frameType();if(ft===LAST_FT)return;LAST_FT=ft;const g=id=>document.getElementById(id);
+  if(g('qfig_motors'))g('qfig_motors').innerHTML=quadSvg({w:240});
+  if(g('qfig_props'))g('qfig_props').innerHTML=quadSvg({w:270,props:true});
+  if(g('m_ftname'))g('m_ftname').textContent=frameName(ft);
+  for(const m in CORNER_OF){const c=CORNER_OF[m];const b=document.querySelector('.mbtn[data-m="'+m+'"] small');if(b)b.textContent=CORNER_NAME[c]+' · '+(spinDir(c)==='CW'?'clockwise':'counter-clockwise');
+    const d=g('m_dir_'+m);if(d)d.textContent=spinDir(c);}}
+function refreshLive2(){try{oriTick();hdgTick();fsTick();batTick();safTick();hltTick();atTick();motorsTick();}catch(e){console.error(e);}}
+// what to ask the drone when a step is opened
+const ON_OPEN={motors:readMotorParams,props:readMotorParams,frame:()=>cmd({action:'get_params',names:['FRAME_TYPE','FRAME_CLASS']}),
+  orient:()=>cmd({action:'get_params',names:['AHRS_ORIENTATION']}),sensors:()=>cmd({action:'get_params',names:['COMPASS_ORIENT','COMPASS_AUTO_ROT']}),
+  rcfs:fsRead,battery:batRead,safety:safRead,health:hltRead,radio:()=>cmd({action:'get_params',names:['ARMING_RUDDER','FLTMODE_CH']})};
+const SW_OPT={arm:[153,'ARM switch'],rtl:[4,'RETURN HOME switch'],kill:[31,'MOTOR KILL switch (emergency stop)'],autotune:[17,'AUTOTUNE switch']};
+function rudderOff(){if(confirm('Disable arming with the rudder stick (ARMING_RUDDER = 0)?\nRecommended once an ARM switch exists: no accidental arming from a yaw input at low throttle.'))cmd({action:'set_params',params:{ARMING_RUDDER:0}});}
+
+/* ================= board picker (search over the official list) ================= */
+function wireBoardPick(){const inp=document.getElementById('board'),list=document.getElementById('boardlist'),all=document.getElementById('boardall');if(!inp||!list)return;
+  const show=(q)=>{q=(q||'').trim().toLowerCase();const hits=q?BOARDS.filter(b=>b.toLowerCase().includes(q)):BOARDS.slice();
+    list.innerHTML=hits.slice(0,80).map(b=>'<div data-b="'+esc(b)+'">'+esc(b)+'</div>').join('')+(hits.length>80?'<div class="muted">… '+(hits.length-80)+' more. Keep typing</div>':(hits.length?'':'<div class="muted">no board matches. Try part of the name ("matek", "kakute", "speedybee")</div>'));
+    list.style.display='block';
+    list.querySelectorAll('div[data-b]').forEach(d=>d.onmousedown=e=>{e.preventDefault();inp.value=d.dataset.b;boardChanged();list.style.display='none';});};
+  inp.oninput=()=>{boardChanged();show(inp.value);};
+  inp.onfocus=()=>show(inp.value);
+  inp.onblur=()=>setTimeout(()=>{list.style.display='none';},150);
+  inp.onkeydown=e=>{if(e.key==='Escape')list.style.display='none';if(e.key==='Enter'){const f=list.querySelector('div[data-b]');if(f&&list.style.display!=='none'){inp.value=f.dataset.b;boardChanged();list.style.display='none';e.preventDefault();}}};
+  all.onmousedown=e=>{e.preventDefault();if(list.style.display==='block'){list.style.display='none';}else{inp.focus();show('');}};
+  inp.placeholder='search '+BOARDS.length+' ArduPilot boards…';}
+
+/* ================= UART assignment ================= */
+const PROTO_NAME={'-1':'disabled',0:'none',1:'MAVLink1',2:'MAVLink2 (telemetry / Bluetooth)',5:'GPS',16:'ESC telemetry',23:'RC receiver',32:'MSP',37:'VTX SmartAudio',44:'VTX Tramp',49:'iBUS telemetry'};
+const UART={order:null,board:'',sel:{},lastSig:''};
+const SERIAL_NAMES=[1,2,3,4,5,6,7,8].map(i=>'SERIAL'+i+'_PROTOCOL');
+function uartLoad(){const board=((CFG&&CFG.board)||document.getElementById('board').value||'').trim();
+  fetch('/api/board_serials?board='+encodeURIComponent(board)).then(r=>r.json()).then(j=>{UART.order=j.order||[];UART.board=j.board||board;UART.lastSig='';uartTick();}).catch(()=>{});
+  if(ST.connected&&!ST.armed)cmd({action:'get_params',names:SERIAL_NAMES.concat(['SERIAL2_OPTIONS','SERIAL1_OPTIONS','SERIAL3_OPTIONS','SERIAL4_OPTIONS','SERIAL5_OPTIONS','SERIAL6_OPTIONS'])});}
+function uartRender(){const tb=document.getElementById('u_rows');if(!tb)return;const p=ST.params||{},order=UART.order||[];
+  document.getElementById('u_board').textContent=UART.board?('Board '+UART.board+(order.length>1?': '+(order.length-1)+' serial ports':'. Port map not available offline; the SERIALn numbers follow the board manual')):'set the board at the top of the page';
+  const n=Math.min(8,Math.max(order.length-1,6));let rows='';
+  for(let i=1;i<=n;i++){const tok=order[i]||'';const m=tok.match(/(\d+)$/);const pads=!tok?'?':(tok==='EMPTY'?'-':(tok+(m?' (pads R'+m[1]+' / T'+m[1]+')':'')));
+    const cur=p['SERIAL'+i+'_PROTOCOL'];
+    rows+='<tr><td><code>SERIAL'+i+'</code></td><td>'+esc(pads)+'</td><td class="'+(cur===undefined?'muted':'')+'">'+(cur===undefined?'–':(PROTO_NAME[cur]||cur))+'</td>'+
+      '<td><select class="inp u_sel" data-i="'+i+'"><option value="">keep</option><option value="23">RC receiver</option><option value="5">GPS</option><option value="2">Telemetry radio (MAVLink2)</option><option value="37">VTX SmartAudio</option><option value="44">VTX Tramp</option><option value="16">ESC telemetry</option><option value="-1">nothing</option></select></td></tr>';}
+  tb.innerHTML=rows;
+  tb.querySelectorAll('.u_sel').forEach(s=>{const i=+s.dataset.i;if(UART.sel[i]!==undefined)s.value=UART.sel[i];s.onchange=()=>{UART.sel[i]=s.value;};});}
+function uartWrite(){const sel=UART.sel,u={},rx=document.getElementById('u_rxtype').value;
+  const chosen=Object.values(sel).filter(v=>v!=='');
+  if(chosen.filter(v=>v==='23').length>1||chosen.filter(v=>v==='5').length>1){alert('Only one receiver port and one GPS port.');return;}
+  const p=ST.params||{},warn=[];
+  for(const i in sel){if(sel[i]==='')continue;const v=parseInt(sel[i]),cur=p['SERIAL'+i+'_PROTOCOL'];u['SERIAL'+i+'_PROTOCOL']=v;
+    if(v===23)u['SERIAL'+i+'_OPTIONS']=(rx==='sbus')?3:0;if(v===2)u['SERIAL'+i+'_BAUD']=57;
+    if((cur===1||cur===2)&&v!==cur)warn.push('SERIAL'+i+' is a telemetry link now. On the SpeedyBee that is the Bluetooth you may be using, and changing it over Bluetooth cuts this console off. Do it over USB.');
+    if(cur===23&&v!==23)warn.push('SERIAL'+i+' is the receiver port now: after this the radio is dead until the new port works.');}
+  if(!Object.keys(u).length){alert('Choose a device for at least one port in the "Set to" column.');return;}
+  if(!ST.connected){alert(linkWord());return;}
+  if(warn.length&&!confirm('CAREFUL:\n\n• '+warn.join('\n• ')+'\n\nContinue?'))return;
+  if(confirm('Write:\n'+Object.entries(u).map(([k,v])=>k+' = '+v).join('\n')+'\n\nThe FC reboots afterwards; the live lines below should turn green within 30 s.'))
+    cmd({action:'set_params',params:u}).then(()=>{UART.sel={};setTimeout(()=>cmd({action:'reboot'}),2500);setTimeout(uartLoad,10000);});}
+function uartTick(){const g=id=>document.getElementById(id);if(!g('u_rc'))return;const rc=ST.rc_count||0;
+  g('u_rc').innerHTML=!ST.connected?linkWord():(rc?'<span class="tag-ok">'+rc+' channels</span>':'<span class="tag-bad">no channels</span>');
+  const gpsTxt=fcsays(/GPS.*(detected|u-blox|ublox|NMEA)/i);
+  g('u_gps').innerHTML=!ST.connected?'–':((ST.sats>0||ST.fix>=2||/detected|blox|NMEA/i.test(gpsTxt))?'<span class="tag-ok">detected'+(ST.sats?(' · '+ST.sats+' sats'):'')+'</span>':'<span class="tag-warn">not detected yet</span>');
+  const p=ST.params||{},sig=JSON.stringify([UART.order,SERIAL_NAMES.map(k=>p[k])]);
+  if(sig!==UART.lastSig){UART.lastSig=sig;uartRender();}
+  const rxp=SERIAL_NAMES.find(k=>p[k]===23),gpp=SERIAL_NAMES.find(k=>p[k]===5);
+  g('u_verdict').innerHTML=!ST.connected?'–':((rxp&&gpp)?'<span class="tag-ok">receiver on '+rxp.slice(0,7)+', GPS on '+gpp.slice(0,7)+'</span>':'<span class="tag-warn">'+(rxp?'':'no port set to RC receiver · ')+(gpp?'':'no port set to GPS')+'</span>');}
+
+/* ================= ESC protocol ================= */
+const ESC_NAME={0:'PWM',1:'OneShot',2:'OneShot125',3:'Brushed',4:'DShot150',5:'DShot300',6:'DShot600',7:'DShot1200'};
+function escTick(){const g=id=>document.getElementById(id);if(!g('esc_cur'))return;const v=(ST.params||{}).MOT_PWM_TYPE;
+  g('esc_cur').textContent=v===undefined?'–':(ESC_NAME[v]||v);g('esc_say').textContent=ST.connected?fcsays(/esc|calib/i):linkWord();}
+function escWrite(){const v=parseInt(document.getElementById('esc_sel').value);if(!ST.connected){alert(linkWord());return;}
+  if(confirm('Write MOT_PWM_TYPE = '+v+' ('+ESC_NAME[v]+')? The FC reboots.'))cmd({action:'set_params',params:{MOT_PWM_TYPE:v}}).then(()=>setTimeout(()=>cmd({action:'reboot'}),2500));}
+function escCal(){if(!ST.connected){alert(linkWord());return;}
+  if(confirm('PWM ESCs only. PROPS OFF.\nThis sets ESC_CALIBRATION = 3: at the next power-up the FC calibrates the ESCs by itself.\n\nUnplug USB → plug the battery in → wait for the ESC tones to finish (about 10 s) → unplug. The setting clears itself.'))cmd({action:'set_params',params:{ESC_CALIBRATION:3}});}
+
+/* ================= receiver / radio extras ================= */
+function rxTick(){const g=id=>document.getElementById(id);const p=ST.params||{};
+  if(g('rx_live'))g('rx_live').innerHTML=!ST.connected?linkWord():((ST.rc_count||0)?'<span class="tag-ok">'+ST.rc_count+' channels, bound and talking</span>':'<span class="tag-bad">no channels yet</span>');
+  if(g('swcur'))g('swcur').textContent='mode switch: '+(p.FLTMODE_CH===undefined?'–':'channel '+p.FLTMODE_CH)+' · rudder arming: '+(p.ARMING_RUDDER===undefined?'–':(p.ARMING_RUDDER?'on':'off'));}
+
+/* ================= step open / link-up hooks ================= */
+let WAS_CONN=false;
+function onOpenAll(){document.querySelectorAll('.step.open').forEach(div=>{const id=div.dataset.id;if(ON_OPEN[id])ON_OPEN[id]();});}
+function refreshLive3(){try{uartTick();escTick();rxTick();if(ST.connected&&!WAS_CONN)onOpenAll();WAS_CONN=!!ST.connected;}catch(e){console.error(e);}}
+Object.assign(ON_OPEN,{uarts:uartLoad,esc:()=>{if(ST.connected)cmd({action:'get_params',names:['MOT_PWM_TYPE']});},compass:ON_OPEN.sensors,accel:()=>{}});
+delete ON_OPEN.sensors;
+for(const k in ON_OPEN){const f=ON_OPEN[k];if(k!=='uarts')ON_OPEN[k]=()=>{if(ST.connected&&!ST.armed)f();};}   // never queue reads for a drone that is not there, or is flying
+
+/* ================= status bar, link wording, refusals, motor-test gating ================= */
+let LAST_CONN_T=0;
+function linkWord(){if(ST.connected)return 'linked';return (Date.now()-LAST_CONN_T<30000)?'link dropped, reconnecting…':'drone not linked';}
+function toast(msg){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>{t.style.display='none';},5000);}
+function sbarTick(){if(ST.connected)LAST_CONN_T=Date.now();const g=id=>document.getElementById(id);if(!g('s_link'))return;const live=ST.connected===true;
+  const set=(id,t,cls)=>{const e=g(id);if(!e)return;e.textContent=t;e.className='chip'+(cls?' '+cls:'');e.style.display=t?'':'none';};
+  const lk=(ST.link_kind||'').toUpperCase();
+  set('s_link',live?('LINK OK · '+lk):(Date.now()-LAST_CONN_T<30000?('LINK DROPPED · '+lk+' · reconnecting'):('NO LINK'+(lk?' · '+lk:''))),live?'ok':'bad');
+  set('s_mode',live?('MODE '+ST.mode):'MODE –');
+  set('s_arm',live?(ST.motor_test?'MOTOR TEST':(ST.armed?'ARMED':'DISARMED')):'–',live&&ST.armed?'warn':'');
+  set('s_batt',live?('BATT '+ST.batt_v.toFixed(1)+' V'+(ST.batt_v<5?' (USB only)':'')):'BATT –',live?(ST.batt_v<5?'':(ST.batt_v<21?'warn':'ok')):'');
+  set('s_gps',live?('GPS '+ST.sats+' sats · fix '+ST.fix):'GPS –',live&&ST.fix>=3?'ok':'');
+  const pm=ST.prearm_msgs||[],n=pm.length;
+  set('s_pre',live?(n?('FC OBJECTS: '+pm.join(' · ').slice(0,90)+(n>2?' …':'')):'FC: READY TO ARM'):'',live?(n?'warn':'ok'):'');
+  const fw=(ST.fc_info||{}).fw;set('s_fw',live&&fw?fw.replace(/ \(.*\)/,''):'','');}
+function motorsTick2(){const gate=document.getElementById('mgate');if(!gate)return;
+  document.querySelectorAll('.mbtn').forEach(b=>{b.disabled=!gate.checked||!!ST.motor_test;});
+  const sp=document.getElementById('m_testing');if(sp)sp.textContent=ST.motor_test?'motor test running… (the FC shows ARMED for these seconds; that is normal)':(ST.connected?'':linkWord());}
+function refreshLive4(){try{sbarTick();motorsTick2();}catch(e){console.error(e);}}
+
+/* ================= flight modes explained, Bluetooth first link ================= */
+const MODE_INFO={STABILIZE:'manual: self-levels, you hold the height (Betaflight: Angle)',ALT_HOLD:'manual: self-levels and holds the height',LOITER:'GPS hold: hands off and it stays where it is; the sticks move it',POSHOLD:'GPS hold with direct stick control',GUIDED:'autopilot: flies where the laptop tells it',AUTO:'flying the onboard mission',RTL:'returning to the launch point and landing',LAND:'landing straight down',SMART_RTL:'retracing its path home',BRAKE:'stopping and holding position',ACRO:'manual, no self-levelling (Betaflight: Acro), not for this drone',DRIFT:'manual, car-like',SPORT:'manual, rate-controlled',CIRCLE:'circling a point',AUTOTUNE:'tuning itself; keep it in the air',THROW:'throw launch',GUIDED_NOGPS:'guided without GPS',FLOWHOLD:'optical-flow hold',FOLLOW:'following',TURTLE:'flipping itself back over on the ground'};
+const MODE_SHORT={STABILIZE:'manual',ALT_HOLD:'height hold',LOITER:'GPS hold',POSHOLD:'GPS hold',GUIDED:'autopilot',AUTO:'mission',RTL:'coming home',LAND:'landing',SMART_RTL:'coming home',BRAKE:'stopping',ACRO:'acro',AUTOTUNE:'tuning'};
+const FLTMODE_NAMES={0:'STABILIZE',1:'ACRO',2:'ALT_HOLD',3:'AUTO',4:'GUIDED',5:'LOITER',6:'RTL',7:'CIRCLE',9:'LAND',11:'DRIFT',13:'SPORT',14:'FLIP',15:'AUTOTUNE',16:'POSHOLD',17:'BRAKE',18:'THROW',19:'AVOID_ADSB',20:'GUIDED_NOGPS',21:'SMART_RTL',22:'FLOWHOLD',23:'FOLLOW',24:'ZIGZAG',25:'SYSTEMID',26:'AUTOROTATE',27:'AUTO_RTL',28:'TURTLE'};
+function modeTick(){const g=id=>document.getElementById(id);const p=ST.params||{};
+  const sm=g('s_mode');if(sm&&ST.connected){sm.textContent='MODE '+ST.mode+(MODE_SHORT[ST.mode]?' · '+MODE_SHORT[ST.mode]:'');sm.title=MODE_INFO[ST.mode]||'';}
+  const tb=g('modetbl');if(!tb)return;
+  const ch=p.FLTMODE_CH,pwm=ch?((ST.rc||[])[ch-1]||0):0;
+  const pos=pwm?(pwm<1231?1:pwm<1361?2:pwm<1491?3:pwm<1621?4:pwm<1750?5:6):0;
+  const rows=[[1,'switch LOW'],[4,'switch MIDDLE'],[6,'switch HIGH']].map(([n,lab])=>{const v=p['FLTMODE'+n];const name=v===undefined?'–':(FLTMODE_NAMES[v]||v);
+    return '<tr'+(pos===n?' class="cur"':'')+'><td>'+lab+'</td><td><b>'+name+'</b></td><td class="muted">'+(MODE_INFO[name]||'')+'</td></tr>';}).join('');
+  const sig=rows+'|'+pos;if(tb.dataset.sig!==sig){tb.dataset.sig=sig;tb.innerHTML=rows;}
+  const mc=g('modecur');if(mc)mc.textContent=ST.connected?('now: '+ST.mode+' ('+(MODE_INFO[ST.mode]||'')+')'+(ch?(' · mode channel '+ch+(pwm?' = '+pwm+' µs (position '+pos+')':' (no radio)')):'')):linkWord();}
+ON_OPEN.radio=()=>{if(ST.connected&&!ST.armed)cmd({action:'get_params',names:['ARMING_RUDDER','FLTMODE_CH','FLTMODE1','FLTMODE2','FLTMODE3','FLTMODE4','FLTMODE5','FLTMODE6']});};
+
+let BLE_LAST=[];
+function bleScan(){const m=document.getElementById('bt_scanmsg'),l=document.getElementById('bt_list');m.textContent='scanning… 8 s';l.innerHTML='';
+  fetch('/api/ble_scan').then(r=>r.json()).then(j=>{if(!j.ok){m.innerHTML='<span class="tag-bad">'+esc(j.err)+'</span>';return;}
+    BLE_LAST=j.devices;const named=j.devices.filter(d=>d.name);
+    m.textContent=j.devices.length+' device(s) heard, '+named.length+' with a name';
+    l.innerHTML='<table class="t" style="margin-top:6px"><thead><tr><th>Name</th><th>Signal</th><th>Address</th><th></th></tr></thead><tbody>'+
+      j.devices.map((d,i)=>'<tr'+(d.drone?' class="cur"':'')+'><td>'+(d.name?'<b>'+esc(d.name)+'</b>':'<span class="muted">(no name yet)</span>')+(d.drone?' <span class="tag-ok">SpeedyBee-type drone module</span>':'')+'</td><td>'+(d.rssi!==null&&d.rssi!==undefined?(d.rssi+' dBm'+(d.rssi>-70?' · close':'')):'–')+'</td><td class="mono">'+esc(d.address)+'</td><td><button class="btn sm" onclick="bleUse('+i+')">'+(d.name?'this is my drone':'this is my drone (by address)')+'</button></td></tr>').join('')+'</tbody></table>'+
+      '<div class="muted" style="font-size:12px;margin-top:4px">No name shown? Windows often needs a second scan to learn names. Or pick by address: the strongest device that appears when the drone is powered and vanishes when it is off.</div>';})
+  .catch(()=>{m.textContent='scan failed. Is the console running?';});}
+function bleUse(i){const d=BLE_LAST[i];if(!d)return;const body={ble_addr:d.address||''};if(d.name){body.ble_name=d.name.trim();const inp=document.getElementById('blename');if(inp)inp.value=body.ble_name;}
+  fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()).then(j=>{
+    if(j.ok){CFG=j.settings;document.getElementById('bt_scanmsg').textContent='saved. The bridge looks for '+(d.name?'"'+d.name.trim()+'" or ':'')+'address '+d.address+' from its next scan (within 15 s). Unplug the USB cable to use it.';}else alert(j.err);});}
+function bleTick(){const g=id=>document.getElementById(id);if(!g('bt_state'))return;const b=ST.bridge||{};
+  const ago=b.ts?(Date.now()/1000-b.ts):null,alive=ago!==null&&ago<40;
+  const words={scanning:'scanning for the drone…',not_found:'nothing with that name found yet. Drone powered? Name right? (scan below)',connecting:'connecting…',
+    connected:'connected to '+(b.device||'the drone')+(b.by==='fingerprint'?', recognised as a SpeedyBee-type module rather than by name. Click Scan, then "this is my drone", to lock it in':''),silent:'the board answers nothing (still Betaflight?), waiting',lost:'link lost, reconnecting',
+    standby:'standing by: a Betaflight board is on USB ('+(b.standby_usb||'')+'). Finish the conversion first'};
+  g('bt_state').innerHTML=!alive?'<span class="tag-bad">bridge not running. Start it with the Desktop shortcut (Start.bat)</span>':
+    ('<span class="'+(b.state==='connected'?'tag-ok':((b.state==='not_found'||b.state==='lost'||b.state==='silent')?'tag-warn':''))+'">'+esc(words[b.state]||b.state||'–')+'</span>');
+  g('bt_link').textContent=ST.connected?('LINK OK · '+(ST.link_kind||'').toUpperCase()+(ST.link_kind==='usb'?'. Unplug the cable to test Bluetooth':'')):'no link';
+  const ad=b.addr_hint||(CFG&&CFG.ble_addr)||'';g('bt_hint').textContent='"'+(b.hint||(CFG&&CFG.ble_name)||'–')+'"'+(ad?' or address '+ad.toUpperCase():'');}
+function refreshLive5(){try{modeTick();bleTick();}catch(e){console.error(e);}}
+
+const STEPS=[
+ {id:'physical',t:'Before you start: mark the nose, check the build',s:'Five minutes now saves the classic first-flight crash',
+  b:`<div class="two"><div>${fcSvg()}</div><div>
+      <div class="lbl2">Mark the nose</div>
+      <p>A 5-inch frame looks the same from every side. Put a strip of coloured tape on the two front arms (later you can use two coloured props at the front). When a step below says "nose", "left" or "front-right", it means this marking. Stand behind the drone, nose away from you: its left is your left.</p>
+      <div class="lbl2">Flight controller arrow</div>
+      <p>The arrow printed on the flight controller should point at the nose. If it can't, because the USB port is in the way for example, that's fine. The orientation check step finds the rotation and sets it.</p></div></div>
+     <div class="lbl2" style="margin-top:8px">Build checklist (props off for all of this)</div>
+     <div class="chk">
+      <label><input type="checkbox"> Motor screws are short enough. A screw that reaches the windings inside the motor kills it.</label>
+      <label><input type="checkbox"> Nothing rubs or is loose: arms, stack, GPS mast, antennas. Servo and ESC wires stay clear of the prop discs.</label>
+      <label><input type="checkbox"> First power-up through a smoke stopper, or just touch the plug for a second. Nothing warms up in 10 s, the ESC sings, the FC LED is on, the GPS LED blinks.</label>
+      <label><input type="checkbox"> GPS/compass on a mast or at the rear, away from the battery wires and the VTX.</label>
+      <label><input type="checkbox"> The barometer (a tiny hole on the FC) is covered with open-cell foam. Sun and prop wash make it read wrong.</label>
+      <label><input type="checkbox"> Receiver antennas at 90 degrees to each other, not next to the VTX or the ESC wires.</label>
+      <label><input type="checkbox"> The battery strap and the ball holder don't shade the GPS from the sky.</label>
+     </div>`,
+  f:`<b>A motor gets warm on the bench</b>: a screw into the windings, or a shorted phase. Stop and check the screw length. <b>FC LED stays off with the battery in</b>: no 5 V rail. Check the ESC/BEC wiring before anything else.`},
+ {id:'bf_backup',bf:true,t:'Back up Betaflight',s:'One click. Read-only.',
+  run:[R('backup_betaflight','▶ Back up Betaflight','primary')],
+  b:`Close Betaflight Configurator first, since only one program can use the USB port at a time. This saves <code>version</code>, <code>diff all</code> and <code>dump all</code> into <code>fc\\backups\\</code>. If you ever want Betaflight back, the guide is <code>fc\\RESTORE-BETAFLIGHT.md</code>.`,
+  f:`<b>"No board found"</b>: use a data USB cable (many are charge-only), try another port, and make sure Configurator is closed. <b>Hangs</b>: unplug, wait 5 s, plug in again.`},
+ {id:'flash',t:'Install ArduPilot firmware',s:'Two clicks: download, then install. The board is put into its bootloader for you.',
+  run:[R('firmware','▶ 1 Download firmware for my board','primary'), R('flash','▶ 2 Install it on the board (USB)','good','Install ArduPilot now?\\n\\nThe board reboots into its bootloader, the firmware is written, and every byte is read back and compared. Betaflight is replaced (the backup from step 2 restores it). Keep the USB cable in until it says done.'), R('dfu','⌕ Is the board in DFU mode?')],
+  b:`<ol><li><b>Download</b> fetches the ArduCopter file for the board chosen above into <code>fc\\firmware\\</code>.</li>
+     <li><b>Install</b> asks a Betaflight board over USB to enter its bootloader (no BOOT button needed). A board that is already in DFU mode is flashed directly. The whole image is read back and compared before the tool says done.</li>
+     <li>When it says <b>verified</b>, unplug the USB cable, plug it back in (the board needs that once after a flash) and click <b>Detect</b> at the top. It must now say ArduPilot.</li></ol>
+     <span class="muted">Manual fallback: hold the FC's BOOT button while plugging in USB, then Betaflight Configurator, Firmware Flasher, Load Firmware [Local], the downloaded <code>arducopter_with_bl.hex</code>, Flash.</span>`,
+  f:`<b>"NO board in DFU mode"</b>: the board didn't answer over USB (Configurator or another program is holding the port; close it), or it isn't running Betaflight. Hold BOOT while plugging in USB and click Install again. <b>"cannot be opened" or a driver message</b>: with the board in DFU mode, run ImpulseRC Driver Fixer once (it installs the WinUSB driver), then retry. <b>"VERIFY FAILED"</b>: run Install again. If it fails twice, flash with Configurator. <b>Board not in the list</b>: it can't run ArduPilot. See Requirements.`},
+ {id:'params',t:'Load the proven parameters',s:'One click. Frame, radio, failsafes, modes, fence, dropper.',
+  run:[R('push_params','▶ Load parameters','primary'), R('snapshot','Backup current params first')],
+  b:`Writes every parameter, checks each one by reading it back, reboots the board and prints a health report. Afterwards the mode switch means: low = GUIDED (autopilot), middle = Loiter, high = Stabilize. The steps below then adjust the UARTs, battery, fence and orientation to your drone. <span id="paramnote" class="muted"></span>`,
+  f:`<b>A parameter is refused</b>: the log names it. Usually it's a feature your board doesn't have, such as OSD; ignore those. <b>Not a SpeedyBee F405 V5</b>: the generic set loads instead, and the UART step (plus the Betaflight translation, for conversions) fills in your ports.`},
+ {id:'migrate',bf:true,t:'Translate your Betaflight settings',s:'UARTs, ESC protocol, props-in/out, stick map, board rotation, battery scaling, VTX',
+  b:`<div class="panel" id="migpanel"><div class="run" style="margin:0"><button class="btn primary sm" onclick="migPreview()">▶ Read my Betaflight backup</button><span class="muted" id="migsrc"></span></div>
+     <div id="migtable"></div><div id="mignotes" class="muted" style="font-size:12.5px"></div>
+     <div class="run" style="margin:4px 0 0"><button class="btn sm good" id="migapply" style="display:none" onclick="migApply()">▶ Write the ticked parameters to the drone</button><span class="muted" id="migstat"></span></div>
+     <div id="migres" class="fcsays"></div></div>`,
+  f:`<b>"no Betaflight backup found"</b>: run the backup step first. <b>UARTs could not be translated</b>: the laptop needs internet once to fetch your board's port map. Or set them by hand in the next step.`},
+ {id:'wiring',fresh:true,t:'Wire it up: which pad does what',s:'Motors, receiver, GPS and compass, servo, battery sense. Note the UART numbers as you go.',
+  b:`<div class="two"><div>${fcSvg()}</div><div>
+   <p>Every flight controller has the same kinds of pads. Only the numbers differ between boards, so keep the board's pinout page open. Write down which UART number the receiver and the GPS go to; the next step asks for them.</p>
+   <table class="t"><thead><tr><th>Device</th><th>FC pads</th><th>SpeedyBee F405 V5</th></tr></thead><tbody>
+    <tr><td>4-in-1 ESC</td><td>M1 to M4 signal, GND, battery voltage and current sense (the 8-pin ribbon carries all of it)</td><td>ESC ribbon connector</td></tr>
+    <tr><td>Receiver (ELRS / CRSF / SBUS)</td><td>a UART: FC RX pad from receiver TX, FC TX pad from receiver RX, 5V, GND</td><td>R2 / T2 = SERIAL2</td></tr>
+    <tr><td>GPS module</td><td>another UART: FC RX from GPS TX, FC TX from GPS RX, 5V, GND</td><td>R6 / T6 = SERIAL6</td></tr>
+    <tr><td>Compass (inside the GPS module)</td><td>SDA and SCL (I2C); shares the GPS 5V and GND</td><td>SDA / SCL</td></tr>
+    <tr><td>Release servo</td><td>a free motor/servo output: signal, 5V, GND</td><td>S5 pad = output 6</td></tr>
+    <tr><td>Buzzer (optional)</td><td>BZ+ / BZ-</td><td>BZ+ / BZ-</td></tr>
+    <tr><td>Telemetry radio (optional, instead of Bluetooth)</td><td>a UART, 57600 baud</td><td>R4 / T4 = SERIAL4 (the Bluetooth module lives on SERIAL1)</td></tr>
+   </tbody></table>
+   <div class="chk" style="margin-top:8px">
+    <label><input type="checkbox"> RX and TX are crossed (device TX goes to FC RX). A device that never answers is almost always this.</label>
+    <label><input type="checkbox"> Receiver and GPS are on 5V, not 3.3 V and not battery voltage. Nothing but the VTX goes on the 9 V / VTX pad.</label>
+    <label><input type="checkbox"> Motor signal wires go to M1 to M4 in any order. The motor step sorts the order out in software.</label>
+    <label><input type="checkbox"> The servo is on a real PWM output pad (S5 on the SpeedyBee), never on a UART pad.</label>
+   </div></div></div>`,
+  f:`<b>Something gets warm at power-up</b>: power off. 5V and GND swapped on the receiver or GPS is the usual cause. <b>Pinout unknown</b>: search for "<i>board name</i> pinout". The manufacturer's diagram lists the R1/T1 pads and which UART number each one is.`},
+ {id:'uarts',t:'UARTs: receiver, GPS, radio',s:'Tell ArduPilot which port has which device',
+  b:`<div class="panel">
+    <div class="muted" style="font-size:12.5px" id="u_board">–</div>
+    <table class="t" style="margin-top:6px"><thead><tr><th>ArduPilot port</th><th>Board UART (pads)</th><th>Now</th><th>Set to</th></tr></thead><tbody id="u_rows"><tr><td colspan="4" class="muted">open this step with the drone linked</td></tr></tbody></table>
+    <div class="run" style="margin:6px 0 0"><label>Receiver type: <select class="inp" id="u_rxtype"><option value="crsf">ELRS / Crossfire (CRSF)</option><option value="sbus">SBUS (FrSky, Futaba)</option><option value="other">other serial receiver</option></select></label>
+      <button class="btn sm" onclick="uartLoad()">↻ Read</button><button class="btn sm good" onclick="uartWrite()">▶ Write and reboot</button></div>
+    <div class="fcsays">receiver: <span id="u_rc">–</span> · GPS: <span id="u_gps">–</span></div>
+    <div id="u_verdict" class="fcsays">–</div>
+   </div>
+   <p>Converted from Betaflight? The translation step already filled these in. Just check that the receiver and GPS lines match where the wires actually are. Fresh build: pick the device for each port in the "Set to" column, write, and watch the two live lines turn green after the reboot.</p>`,
+  f:`<b>Receiver stays on "no channels"</b>: RX and TX crossed, wrong port, or the receiver isn't bound. SBUS on a port without an inverter needs the SBUS choice above (it sets the inversion option). <b>GPS stays "not detected"</b>: wrong port, or RX and TX crossed. The first detection can take 30 s after power-up.`},
+ {id:'bluetooth',t:'Link the laptop to the drone by Bluetooth',s:'This is what Operations uses in the field. Set it up once, on the bench.',
+  b:`<div class="panel">
+    <div class="kv"><span>bridge</span><b id="bt_state">–</b><span>laptop link now</span><b id="bt_link">–</b><span>looking for a name containing</span><b id="bt_hint">–</b></div>
+    <div class="run" style="margin:8px 0 0"><button class="btn sm primary" onclick="bleScan()">⌕ Scan for Bluetooth devices (8 s)</button><span class="muted" id="bt_scanmsg"></span></div>
+    <div id="bt_list"></div>
+   </div>
+   <ol><li>In Windows, go to Settings, Bluetooth &amp; devices, and turn Bluetooth on. Don't pair the drone there. The bridge connects to it directly.</li>
+     <li>Power the drone (battery or USB). The SpeedyBee's Bluetooth shows up as <b>F405 V5</b>. Other boards use the name in their manual.</li>
+     <li>Click <b>Scan</b>, then <b>this is my drone</b> next to it. From now on the bridge looks for that name. No pairing, no code.</li>
+     <li>Unplug the USB cable. Within about 15 s the bar at the bottom shows <b>LINK OK · BLUETOOTH</b>. Plug the cable back in for the rest of the bench work; the console switches by itself.</li></ol>`,
+  f:`<b>The scan finds nothing at all</b>: Bluetooth is off in Windows, or this laptop has none. Use a USB Bluetooth dongle, or a telemetry radio on the drone. <b>Everything but the drone shows up</b>: the drone isn't powered, or its module still runs at the wrong speed (load the parameter set first), or it is paired in Windows settings (remove the pairing). <b>Bridge "standing by"</b>: a Betaflight board is on USB. Finish the conversion first. <b>Bridge not running</b>: the Desktop shortcut starts it. <b>Connects, then drops every few seconds</b>: weak battery, antenna, or another phone or app is connected to the drone's Bluetooth.`},
+ {id:'receiver',fresh:true,t:'Bind the receiver',s:'Transmitter and receiver talk, and the drone sees your sticks',
+  b:`<ol><li><b>ELRS</b>: flash the transmitter module and the receiver with the same binding phrase (ExpressLRS Configurator), or power-cycle the receiver three times and use "Bind" in the ELRS Lua script. The receiver LED goes solid when it's connected.</li>
+     <li><b>Crossfire</b>: TX module Lua, Bind, then power the receiver.</li>
+     <li><b>FrSky (SBUS)</b>: hold the receiver's bind button while powering it, put the transmitter in bind mode, then power-cycle both.</li>
+     <li>Set the receiver's failsafe to <b>No pulses</b> (the ELRS default; FrSky sets it during binding). The failsafe test later depends on it.</li></ol>
+     <div class="fcsays">the drone sees: <span id="rx_live">–</span></div>`,
+  f:`<b>Receiver LED keeps blinking</b>: not bound, or the transmitter model uses another protocol or rate. <b>Bound but "no channels"</b>: go back to the UART step. The right port must be set to "RC receiver".`},
+ {id:'esc',fresh:true,t:'ESC protocol',s:'DShot for modern ESCs, no calibration needed. Plain PWM ESCs need a one-time calibration.',
+  b:`<div class="panel">
+    <div class="run" style="margin:0"><span>Now: <b id="esc_cur">–</b></span><label>Protocol: <select class="inp" id="esc_sel"><option value="5">DShot300 (safe default)</option><option value="6">DShot600</option><option value="4">DShot150</option><option value="0">PWM (old ESCs)</option><option value="2">OneShot125</option></select></label>
+      <button class="btn sm good" onclick="escWrite()">▶ Write</button><button class="btn sm" onclick="escCal()">PWM only: calibrate ESCs at the next power-up</button></div>
+    <div class="muted" style="font-size:12px">BLHeli_S, BLHeli_32, AM32 and Bluejay all speak DShot: choose DShot300 and skip the calibration. Only plain PWM ESCs need the throttle-range calibration. Click the button, props off, unplug USB, plug the battery in and wait for the ESC tones to finish. The FC runs the high/low sequence itself. Then unplug.</div>
+    <div class="fcsays">FC says: <span id="esc_say">–</span></div>
+   </div>`,
+  f:`<b>Motors twitch but never spin in the motor test</b>: the protocol doesn't match the ESC. Try DShot300 or PWM. <b>One motor stutters</b>: that ESC lost its settings. Re-flash it, or use PWM for all four.`},
+ {id:'orient',t:'Which way is the flight controller facing?',s:'Tilt the drone three ways and the wizard tells you if the FC is mounted rotated',
+  b:`<div class="panel">
+    <div class="two"><div>${horizonSvg()}</div><div>
+      <div class="kv"><span>roll</span><b id="o_roll">–</b><span>pitch</span><b id="o_pitch">–</b><span>heading</span><b id="o_yaw">–</b><span>AHRS_ORIENTATION now</span><b id="o_cur">–</b></div>
+      <p class="muted">Hold the drone in each pose for 2 s, then click its button. Tilt about 30 to 45 degrees. The exact angle doesn't matter.</p></div></div>
+    <div class="pos">
+      <button class="btn sm" onclick="oriCapture('level')">1 · Level, nose forward<small id="o_c1"></small></button>
+      <button class="btn sm" onclick="oriCapture('nosedown')">2 · Nose DOWN<small id="o_c2"></small></button>
+      <button class="btn sm" onclick="oriCapture('rightdown')">3 · RIGHT side DOWN<small id="o_c3"></small></button></div>
+    <div class="figrow">${poseSvg('level','1 · level')}${poseSvg('nosedown','2 · nose down')}${poseSvg('right','3 · right side down')}</div>
+    <div class="run" style="margin:0"><button class="btn sm primary" onclick="oriAnalyse()">▶ Check orientation</button><button class="btn sm good" id="o_fix" style="display:none" onclick="oriFix()"></button><button class="btn sm" onclick="cmd({action:'reboot'})">⟳ Reboot FC</button></div>
+    <div id="o_verdict" class="fcsays">–</div>
+   </div>
+   <p>A rotated FC passes every calibration and then flips the drone the instant it takes off. That's why this comes first. The horizon above must move like the drone: nose down, and the ground comes up.</p>`,
+  f:`<b>"inconsistent"</b>: the drone moved during a capture, or you tilted two ways at once. Redo the three captures cleanly. <b>The horizon twitches at rest</b>: a motor is running or the FC is loose. Fix the mounting. <b>Still not PASS after writing</b>: reboot, then repeat the captures. The new value must give a clean PASS before you continue. After any orientation change, redo <b>Level</b> in the accelerometer step.`},
+ {id:'frame',t:'Frame: props-in or props-out',s:'One click. Get it wrong and the drone flips on takeoff.',
+  b:`<div class="panel"><div class="run" style="margin:0">
+       <span>Current: <b id="frameCur">–</b></span>
+       <button class="btn sm" onclick="setFrame(12)">Props-IN (Betaflight default)</button>
+       <button class="btn sm" onclick="setFrame(18)">Props-OUT (reversed motors)</button></div>
+     <div class="figrow"><div><div class="lab" style="margin-bottom:4px">Props-IN · FRAME_TYPE 12</div>${quadSvg({ft:12,w:200})}</div><div><div class="lab" style="margin-bottom:4px">Props-OUT · FRAME_TYPE 18</div>${quadSvg({ft:18,w:200})}</div></div>
+     <div class="muted" style="font-size:12px">The FC reboots after the click, because the frame type is read at boot. Look from above with the nose away from you. Props-in: the two front props turn towards each other at the nose. Props-out: away from each other. The motor numbering stays Betaflight's; that is the whole point of these two frame types. Not sure? Props-in is the default, and the motor step verifies it.</div></div>`},
+ {id:'motors',t:'Motor order and direction',s:'In the browser, like Betaflight. Props off.',
+  b:`<div class="panel" id="mpanel">
+   <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;cursor:pointer"><input type="checkbox" id="mgate"> I confirm: <b>props removed</b> (or props-on mode ticked below), drone on flat ground, battery in, nobody within 3 m.</label>
+   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+     <span>Throttle <b id="mthv">5</b> %</span><input type="range" id="mth" min="1" max="20" value="5" style="width:180px">
+     <label style="font-size:12.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="mpropson"> props still ON: 1 % max, film in slow motion</label>
+   </div>
+   <div class="two"><div class="fig" id="qfig_motors"></div><div>
+   <div class="quad">
+     <button class="btn mbtn" data-m="D" disabled>D<small>front-left · clockwise</small></button>
+     <button class="btn mbtn" data-m="A" disabled>A<small>front-right · counter-clockwise</small></button>
+     <button class="btn mbtn" data-m="C" disabled>C<small>rear-left · counter-clockwise</small></button>
+     <button class="btn mbtn" data-m="B" disabled>B<small>rear-right · clockwise</small></button>
+   </div>
+   <div class="run" style="margin:8px 0 0"><button class="btn sm mbtn" data-m="ALL" disabled>▶ Spin all in order A → B → C → D</button></div>
+   <div class="muted" style="font-size:12px">2 s each · nose = top of the diagram · directions for: <b id="m_ftname">…</b></div>
+   <div class="muted" style="font-size:12px;margin-top:4px">The Bluetooth link usually drops for a few seconds while a motor spins. Wait for LINK OK in the bar at the bottom before the next one. While a motor spins the FC reports "armed". That is the test, not a flight.</div></div></div>
+   <div class="fcsays">FC says: <span id="msay">–</span> <span id="m_testing" class="warn"></span></div>
+   <table class="t" style="margin-top:4px"><thead><tr><th>Pressed</th><th>Which corner actually spun?</th><th>Turned the right way?</th></tr></thead><tbody id="mver"></tbody></table>
+   <div id="mverdict" style="font-size:12.5px"></div>
+   <div class="run" style="margin:4px 0 0"><button class="btn sm good" id="mapbtn" style="display:none" onclick="applyMapping()">▶ Apply motor mapping (fix corners in software)</button>
+     <button class="btn sm" id="revbtn" style="display:none" onclick="applyReverse()">▶ Reverse the wrong-way motors in software (DShot)</button>
+     <button class="btn sm" onclick="cmd({action:'reboot'})">⟳ Reboot FC</button></div>
+   <div class="muted" style="font-size:12px">Outputs now: <span id="mmap">–</span></div>
+  </div>`,
+  f:`<b>FC says "Motor Test: ..."</b>: it names the blocker. RC not calibrated means do the Radio step first; otherwise it's the safety switch or the battery. <b>Nothing spins although the FC accepted</b>: the battery isn't plugged in, or the ESC protocol (<code>MOT_PWM_TYPE</code>) doesn't match your ESC. <b>The software reverse did nothing</b>: your ESC ignores DShot commands (old BLHeli_S). Swap any two of that motor's three wires instead.`},
+ {id:'radio',t:'Radio calibration and switches',s:'Live bars, one-click calibration, stick directions, switches',
+  b:`<div class="panel" id="rcpanel">
+    <div class="two"><div>${txSvg()}</div><div>
+    <div class="fcsays">channels: <span id="rccount">–</span></div>
+    <div class="rcbars" id="rcbars"></div></div></div>
+    <div class="run" style="margin:0"><button class="btn sm primary" id="recbtn" onclick="recToggle()">▶ 1 Record: move every stick and switch to its ends (10–20 s)</button>
+      <button class="btn sm good" onclick="rcWrite()">▶ 2 Write calibration</button><span class="muted" id="recinfo"></span></div>
+    <div class="lbl2" style="margin-top:6px">Stick directions (hold the stick, then click)</div>
+    <div class="run" style="margin:0"><button class="btn sm" onclick="dirCheck('pitch')">pitch FORWARD, then click</button><button class="btn sm" onclick="dirCheck('roll')">roll RIGHT, then click</button>
+      <button class="btn sm" onclick="dirCheck('yaw')">yaw RIGHT, then click</button><button class="btn sm" onclick="dirCheck('throttle')">throttle UP, then click</button>
+      <button class="btn sm good" onclick="dirWrite()">▶ 3 Write directions</button></div>
+    <div id="dirinfo" class="muted" style="font-size:12.5px"></div>
+    <div class="lbl2" style="margin-top:6px">Switches: click a button, flip that switch, click the same button again</div>
+    <div class="run" style="margin:0"><button class="btn sm" onclick="swDetect('mode')">MODE switch (3 positions)</button>
+      <button class="btn sm" onclick="swDetect('arm')">ARM switch</button>
+      <button class="btn sm" onclick="swDetect('rtl')">RETURN HOME switch</button>
+      <button class="btn sm" onclick="swDetect('kill')">MOTOR KILL switch</button>
+      <button class="btn sm" onclick="swDetect('autotune')">AUTOTUNE switch (optional)</button>
+      <button class="btn sm" onclick="rudderOff()">disable rudder arming</button></div>
+    <div id="swinfo" class="muted" style="font-size:12.5px"></div>
+    <div id="swcur" class="fcsays">–</div>
+    <div class="lbl2" style="margin-top:8px">What the mode switch does</div>
+    <table class="t"><thead><tr><th style="width:18%">Switch</th><th style="width:18%">Mode</th><th>Meaning</th></tr></thead><tbody id="modetbl"><tr><td colspan="3" class="muted">read with the drone linked</td></tr></tbody></table>
+    <div id="modecur" class="fcsays">–</div>
+    <div class="muted" style="font-size:12px">Flip the switch and the highlighted row must follow it. A mission is started from the laptop and needs the switch LOW (autopilot). Coming from Betaflight: Stabilize is Angle mode, and there is no Acro here. RETURN HOME and KILL are separate switches.</div>
+    <div class="muted" style="font-size:12px;margin-top:4px">A good layout: mode on a 3-position switch, arm on a 2-position switch you can't bump, kill on a momentary or guarded switch. Once you have an arm switch, disable rudder arming so a yaw input at idle can never arm the drone.</div>
+  </div>`,
+  f:`<b>No channels, count 0</b>: ELRS receivers need to see the transmitter within about 60 s of power-up. Transmitter on first, then power-cycle the drone. The UART step must say "RC receiver" on the right port. <b>Values frozen</b>: not bound. <b>Bars move but arming complains "RC not calibrated"</b>: do steps 1 and 2 again with real end-to-end stick movement.`},
+ {id:'rcfs',t:'Radio failsafe test',s:'Transmitter off, and the drone must notice within 2 s. In the air it would come home.',
+  b:`<div class="panel">
+    <div class="kv"><span>receiver</span><b id="fs_rx">–</b><span>FC failsafe</span><b id="fs_fc">–</b><span>FS_THR_ENABLE</span><b id="fs_en">–</b><span>FS_THR_VALUE / RC3_MIN</span><b id="fs_val">–</b></div>
+    <ol>
+     <li>Drone disarmed, props off, battery in, transmitter on. The receiver line shows <b>OK</b>.</li>
+     <li>Switch the transmitter off. Within 2 s: receiver <b>LOST</b>, FC failsafe <b>ACTIVE</b>.</li>
+     <li>Transmitter on again: <b>cleared</b>.</li></ol>
+    <div id="fs_log" class="fcsays">–</div>
+    <div class="run" style="margin:0"><button class="btn sm" onclick="fsRead()">↻ Read failsafe settings</button><button class="btn sm good" id="fs_fix" style="display:none" onclick="fsFix()">▶ Fix failsafe settings</button></div>
+    <div id="fs_verdict" class="fcsays">–</div>
+   </div>
+   <div class="panel" style="margin-top:8px">
+    <div class="lbl2">During an autonomous mission, if the radio drops</div>
+    <div class="run" style="margin:0"><span>Now: <b id="fs_pol">–</b></span>
+      <button class="btn sm" onclick="fsPolicy(1)">keep flying the mission (deliveries)</button><button class="btn sm" onclick="fsPolicy(0)">return home at once (default)</button></div>
+    <div class="muted" style="font-size:12px">"Keep flying" means a transmitter dropout doesn't abort the drop; battery, fence and position failsafes still bring it home. "Return home" is the safer choice when people are near the route. Manual modes always return home on radio loss.</div>
+   </div>
+   <p>In the air: radio lost for more than 1 s, and the drone climbs to the return altitude and flies home by itself. Keep the transmitter on, next to the laptop.</p>`,
+  f:`<b>Receiver never shows LOST</b>: the receiver keeps sending the last stick positions (a "hold" or "set position" failsafe), so the drone would fly on blind. ELRS: in the receiver's WebUI or the ELRS Lua script, set failsafe to <b>No pulses</b>. Crossfire: "cut". FrSky SBUS: rebind with failsafe "no pulses". <b>FS_THR_VALUE above RC3_MIN</b>: click Fix.`},
+ {id:'accel',t:'Accelerometer calibration and level',s:'Six positions, with pictures. Once per drone.',
+  b:`<div class="panel">
+    <div class="lbl2">Accelerometer: 6 positions (on a flat table)</div>
+    <div class="figrow">${['level','left','right','nosedown','noseup','upside'].map(k=>poseSvg(k)).join('')}</div>
+    <div class="run" style="margin:0"><button class="btn sm primary" onclick="cmd({action:'accelcal_start'})">▶ Start</button><span class="muted" style="font-size:12px">then hold the drone perfectly still in each position and click it. "Left" and "right" are the drone's own: stand behind it, nose away from you.</span></div>
+    <div class="pos">
+      <button class="btn sm" onclick="cmd({action:'accelcal_pos',pos:1})">1 · Level</button><button class="btn sm" onclick="cmd({action:'accelcal_pos',pos:2})">2 · On its LEFT side</button><button class="btn sm" onclick="cmd({action:'accelcal_pos',pos:3})">3 · On its RIGHT side</button>
+      <button class="btn sm" onclick="cmd({action:'accelcal_pos',pos:4})">4 · Nose DOWN</button><button class="btn sm" onclick="cmd({action:'accelcal_pos',pos:5})">5 · Nose UP</button><button class="btn sm" onclick="cmd({action:'accelcal_pos',pos:6})">6 · Upside down</button></div>
+    <div class="fcsays">FC says: <span id="acsay">–</span></div>
+    <div class="lbl2" style="margin-top:8px">Level (quick, before a session if the hover drifts)</div>
+    <div class="run" style="margin:0"><button class="btn sm" onclick="cmd({action:'levelcal'})">▶ Level now (drone flat &amp; still)</button></div>
+    <div class="muted" style="font-size:12px;margin-top:6px">Gyros calibrate at every power-on. Power the drone while it sits still.</div>
+   </div>`,
+  f:`<b>"calibration FAILED"</b>: the drone moved during a position, or a position was wrong. Start again. <b>Every hover drifts the same way</b>: redo Level on a truly flat surface with the battery in.`},
+ {id:'compass',t:'Compass calibration and heading check',s:'Calibrate outdoors with automatic orientation, then prove it points north',
+  b:`<div class="panel">
+    <div class="lbl2">Compass: outdoors with a GPS fix, at least 1 m from cars, rebar and phones</div>
+    <div class="run" style="margin:0"><button class="btn sm primary" onclick="magcalAuto()">▶ Full calibration, automatic orientation (rotate the drone slowly around every axis)</button>
+      <button class="btn sm" onclick="cmd({action:'magcal_cancel'})">cancel</button>
+      <button class="btn sm" onclick="if(confirm('Drone pointing NORTH, outdoors, with GPS fix?'))cmd({action:'magcal_yaw'})">quick: nose NORTH</button>
+      <button class="btn sm" onclick="magcalReset()">reset orientation &amp; recalibrate</button>
+      <button class="btn sm" onclick="cmd({action:'reboot'})">⟳ reboot to use it</button></div>
+    <div class="bar" style="max-width:520px"><i id="magbar"></i></div><div class="fcsays" id="magsay">–</div>
+    <div class="lbl2" style="margin-top:10px">Heading check, after calibrating and rebooting</div>
+    <div class="two"><div>${roseSvg()}</div><div>
+      <div class="kv"><span>heading now</span><b id="hd_val">–</b><span>COMPASS_ORIENT / AUTO_ROT</span><b id="hd_cur">–</b></div>
+      <div class="run" style="margin:6px 0 0"><button class="btn sm" onclick="hdgNorth()">1 · Nose pointing NORTH (phone compass), then click</button><button class="btn sm good" id="hd_fix" style="display:none" onclick="hdgFix()"></button></div>
+      <div id="hd_verdict" class="fcsays">–</div>
+      <div class="run" style="margin:6px 0 0"><button class="btn sm" onclick="hdgTurn()">2 · Turn the drone 90° to the RIGHT, then click</button></div>
+      <div id="hd_turn" class="fcsays">–</div></div></div>
+   </div>`,
+  f:`<b>Compass stuck below 100 %</b>: rotate more. Nose down, on each side, upside down, spinning slowly. <b>Compass fails, or "mag field high"</b>: something magnetic is nearby, like a phone on the ground, a car or rebar. Move 5 m and redo it. If it never passes, mount the GPS/compass on a mast. <b>Heading off by 90 or 180 degrees</b>: the module is mounted turned. The heading check tells you what to write.`},
+ {id:'gps',t:'GPS fix',s:'Wait for a 3D fix with 8 or more satellites',
+  run:[R('prearm','▶ What is the drone still objecting to?')],
+  b:`Outdoors, open sky. The first fix can take minutes. "Check mag field" right after power-on is normal for about 30 s. Live: <b id="gpslive">–</b>. Then open Operations: the drone pin must sit where you are standing.`,
+  f:`<b>0 satellites for minutes</b>: the GPS isn't powered, or it's on the wrong port (UART step). Under a roof it never fixes. <b>"Bad fix / HDOP"</b>: wait, or move away from buildings.`},
+ {id:'battery',t:'Battery monitor and failsafes',s:'Reported voltage against a multimeter, per-cell limits, capacity',
+  b:`<div class="panel">
+    <div class="kv"><span>drone reports</span><b id="b_v">–</b><span>current</span><b id="b_a">–</b><span>BATT_VOLT_MULT</span><b id="b_mult">–</b><span>limits now (arm / low / critical)</span><b id="b_lim">–</b></div>
+    <div class="run" style="margin:0"><label>Multimeter on the battery: <input class="inp" id="b_meas" type="number" step="0.01" style="width:90px"> V</label>
+      <button class="btn sm good" onclick="batCal()">▶ Write voltage calibration</button><button class="btn sm" onclick="batRead()">↻ Read</button></div>
+    <div class="run" style="margin:0"><label>Cells: <select class="inp" id="b_cells"><option value="4">4S</option><option value="6" selected>6S</option></select></label>
+      <label>Capacity: <input class="inp" id="b_cap" type="number" step="100" style="width:90px" value="3300" oninput="this.dataset.touched=1"> mAh</label>
+      <label>Current sensor: <input class="inp" id="b_apv" type="number" step="0.1" style="width:80px"> A per volt (ESC manual, optional)</label>
+      <button class="btn sm good" onclick="batLimits()">▶ Write limits</button></div>
+    <div id="b_verdict" class="fcsays">–</div>
+    <div class="muted" style="font-size:12px">Written per cell: arm at 3.77 V or more, low at 3.50 V (return home), critical at 3.40 V (land where it is). With the 0.5 kg ball the battery sags more, not less. Never take off below the arm limit.</div>
+   </div>`,
+  f:`<b>Reports 0.0 V</b>: the battery isn't plugged in, or BATT_MONITOR is off for this board (the parameter set turns it on; reload it). <b>Calibration refused</b>: multimeter and drone differ by more than 25 %. Check the battery pins and BATT_VOLT_PIN for your board first. <b>Current stays at 0 A</b>: the ESC's current wire isn't connected. The voltage failsafes still protect you.`},
+ {id:'armtest',t:'Bench arm test',s:'Props off: arm with the switch, motors idle, disarm. The whole chain works before you go outside.',
+  b:`<div class="panel">
+    <div class="kv"><span>mode</span><b id="at_mode">–</b><span>armed</span><b id="at_arm">–</b><span>the drone objects to</span><b id="at_obj">–</b></div>
+    <ol>
+     <li><b>Props off.</b> Battery in, transmitter on, drone on the ground, nobody touching it.</li>
+     <li>Mode switch to Stabilize (high), throttle fully down.</li>
+     <li>Flip the ARM switch. "armed" shows above and all four motors spin slowly. If not, the objection is listed above; go back to that step.</li>
+     <li>Raise the throttle a little: all four speed up together. Lower it. Arm switch back: the motors stop.</li>
+     <li>If you assigned a kill switch: arm again and flip it. The motors must stop instantly.</li></ol>
+   </div>`,
+  f:`<b>"Fence requires position"</b>: with the fence on, arming needs a GPS fix even in Stabilize. Do this test outdoors, or before the fence step. <b>"PreArm: ..." keeps repeating</b>: that step isn't done yet (RC not calibrated, compass, accel). GPS only matters for Loiter; Stabilize needs none. <b>Arms but one motor stays still</b>: the ESC signal wire, or redo the motor step. <b>Motors twitch without arming</b>: normal DShot idle, ignore it.`},
+ {id:'safety',t:'Safety fence and altitudes',s:'Fence radius and ceiling, return altitude and mission altitude that agree with each other',
+  b:`<div class="panel">
+    <table class="t" id="saf_tbl"><thead><tr><th>Setting</th><th>On the drone</th><th>Recommended</th><th>Why</th></tr></thead><tbody></tbody></table>
+    <div id="saf_dist" class="muted" style="font-size:12.5px;margin-top:6px"></div>
+    <div class="run" style="margin:0"><button class="btn sm" onclick="safRead()">↻ Read from the drone</button><button class="btn sm good" onclick="safWrite()">▶ Write the recommended values</button></div>
+    <div id="saf_verdict" class="fcsays">–</div>
+   </div>
+   <p>The fence is measured from where the drone arms (home), not from the site pin, so launch inside the estate. Hitting the fence means the drone stops and returns. The ceiling must be above the mission altitude, the return altitude at least the mission altitude, and the radius bigger than the farthest factory plus a margin. Operations refuses a flight that breaks these rules. To change the mission altitude, use the box at the top of this page, then come back here.</p>`,
+  f:`<b>A factory farther than 2 km</b>: launch closer to it. This wizard caps the radius at 2 km on purpose; you should be able to see the aircraft. <b>Mission altitude above 100 m</b>: check the local drone rules first.`},
+ {id:'props',t:'Props on',s:'CW props on the clockwise motors, CCW on the others. The last thing before flying.',
+  b:`<div class="two"><div class="fig" id="qfig_props"></div><div>${propSvg()}
+     <div class="chk" style="margin-top:8px">
+      <label><input type="checkbox"> Each prop's lettering faces up, and its thick (raised) edge leads into the turn shown for that corner.</label>
+      <label><input type="checkbox"> "CW" or "R" props on the clockwise motors, "CCW" or "L" on the counter-clockwise ones, as drawn for your frame type.</label>
+      <label><input type="checkbox"> Nuts tight. A prop that slips on the shaft flips the drone.</label>
+      <label><input type="checkbox"> No chipped or bent blades, and the drone doesn't rock when you flick a prop by hand.</label>
+      <label><input type="checkbox"> Battery strapped, ball holder empty for the first flights.</label></div></div></div>`,
+  f:`<b>It lifts weakly and drifts</b>: a prop is on upside down (lettering facing down). <b>Flips instantly at takeoff</b>: the prop types are swapped between corners, or the motor step wasn't finished.`},
+ {id:'hover',t:'First manual flights',s:'Stabilize hover, then return home, then Loiter',
+  b:`<ol><li>Mode switch HIGH (Stabilize): hover at 1 to 2 m, land. It feels like Betaflight's Angle mode.</li><li>Take off, then use your return-home switch (or the menu entry in Operations while the link is up). It must come back and land by itself.</li><li>Middle (Loiter): hands off. It must hold position within a metre.</li></ol>
+     <p>Optional, later: Autotune, with the switch from the Radio step, in a calm open field with a full battery. It twitches the drone for 5 to 10 minutes and writes its own tune. Land and disarm with the switch still on to keep it. Do it without the ball, then hover with the ball again.</p>`,
+  f:`<b>Flips on takeoff</b>: frame type, motor order or direction, or FC orientation. Fix it before retrying. <b>Drifts in Loiter</b>: compass or GPS quality. Redo the compass outdoors and the heading check. <b>Won't arm</b>: Operations lists exactly why.`},
+ {id:'health',t:'After the first flights: health check, then hover with the ball',s:'Vibration, position estimate, compass, hover throttle, battery sag',
+  b:`<div class="panel">
+    <div class="kv"><span>vibration x / y / z</span><b id="h_vibe">–</b><span>accel clipping</span><b id="h_clip">–</b><span>position estimate (velocity / position / compass)</span><b id="h_ekf">–</b>
+      <span>hover throttle learned</span><b id="h_hover">–</b><span>compass offsets</span><b id="h_ofs">–</b><span>lowest voltage in flight</span><b id="h_minv">–</b><span>vibration notch filter</span><b id="h_ref">–</b></div>
+    <div class="run" style="margin:0"><button class="btn sm" onclick="hltRead()">↻ Read learned values</button><button class="btn sm good" id="h_notch" style="display:none" onclick="hltNotch()">▶ Set notch reference = hover throttle</button><button class="btn sm" onclick="HLT.minv=null;HLT.maxv=[0,0,0]">reset flight record</button></div>
+    <div id="h_verdict" class="fcsays">–</div>
+   </div>
+   <ol><li>Fly a 1-minute Loiter hover without the ball, land, and read this panel. Every value should be green.</li>
+    <li>Load the ball, press LOCK, hover again for 1 minute at 2 m. Hover throttle must stay under 0.6 and the drone must hang level. Move the battery until it does.</li>
+    <li>The lowest voltage in flight shows how much the battery sags under the extra weight. If it gets near the low limit, fly shorter missions or use a bigger battery.</li></ol>`,
+  f:`<b>Vibration above 30</b>: a bent prop, a loose FC, a cracked arm. Above 60 the position estimate fails in flight. <b>Clipping above 0</b>: the FC hits something or is hard-mounted. Soft-mount it. <b>Compass variance above 0.5 in flight</b>: the compass is too close to power wires. Mast it and recalibrate. <b>Hover throttle above 0.6 with the ball</b>: the motors or props are too small for the load.`},
+ {id:'dropper',t:'Dropper servo',s:'Live test with a slider. Needs the drone linked.',
+  b:`Signal to output <span id="relch">6</span> (the pad marked S5 on the SpeedyBee), red to 5V, brown to GND. <span class="danger">Standard positional MG90S only. A 360° servo spins forever and can't hold the pin.</span>
+     <div class="panel">
+       <div class="vals"><span>drag to move the servo</span><span>pin reads: <b id="pinv">–</b></span></div>
+       <input type="range" id="sl" min="800" max="2500" step="10" value="1500" oninput="document.getElementById('slv').textContent=this.value" onchange="setServo(this.value)">
+       <div class="vals"><span>800</span><span id="slv">1500</span><span>2500</span></div>
+       <div class="run" style="margin:0"><button class="btn sm good" onclick="setServo(CFG.release.lock_pwm)">🔒 CLOSE (<span id="lockv"></span>)</button>
+         <button class="btn sm danger" onclick="setServo(CFG.release.drop_pwm)">🔓 OPEN (<span id="dropv"></span>)</button>
+         <button class="btn sm" onclick="servoOff()">signal off (silence)</button>
+         <button class="btn sm" onclick="saveAs('lock')">save slider as CLOSE</button><button class="btn sm" onclick="saveAs('drop')">save slider as OPEN</button>
+         <button class="btn sm" onclick="swapDir()">⇄ swap open/close</button></div>
+       <div class="muted" style="font-size:12px">Watch the horn. If OPEN turns it the wrong way, swap. The servo gets 1.5 s to reach the position and then goes silent; the mechanism holds the pin. Keep values at least 100 µs inside the ends so it never presses against a stop. Press the horn onto the servo while it is at CLOSE. Then load the ball, CLOSE, lift the drone by the frame and shake it: the ball must stay. OPEN: it must fall out cleanly.</div>
+     </div>`,
+  f:`<b>The slider does nothing</b>: the drone must be linked, and the servo needs battery power, not just USB. <b>Spins continuously</b>: a 360° servo or a broken sensor. Replace it. <b>Buzzes at rest</b>: it's pressing an end stop. Move the value inward. <b>Wrong way</b>: swap. <b>The ball jams on OPEN</b>: the pin is too long or the holder too tight. The pin must clear the ball completely.`},
+ {id:'estate',t:'Site, factories and first mission',s:'After this, everything is one click in Operations',
+  b:`<ol><li>Operations: MENU, <b>Set site location</b>. Search the place or use the laptop's location, then save the view.</li><li>Click empty map, ADD FACTORY, and drag the pins onto the buildings.</li><li>Come back to the <b>Safety fence</b> step. The radius must cover the farthest factory.</li><li>Load the ball, press LOCK.</li><li>Click a factory, FLY MISSION, confirm. The log must show <code>drop step verified on aircraft ... OK</code>.</li></ol> For the first mission pick an empty field, a "factory" 50 m away and a low mission altitude, and do the first real drop over grass.`,
+  f:`<b>Mission refused</b>: the log says why. <b>"FLIGHT BLOCKED by the safety fence"</b>: the Safety fence step. <b>Comes back with the ball</b>: check the "drop step verified" line and re-test the servo. <b>Lands 3 m off</b>: normal GPS accuracy.`},
+ {id:'logs',t:'When something goes wrong: the flight log',s:'Every flight is recorded on the FC. This is how a crash or a strange behaviour gets explained.',
+  b:`<ol><li>The log is a <code>.BIN</code> file on the FC's SD card, one per arming. Take the card out, or with USB use Mission Planner: Data Flash Logs, <b>Download DataFlash Log via Mavlink</b>.</li>
+     <li>Open it in Mission Planner (<b>Review a Log</b>) or drop it on <code>plot.ardupilot.org</code>. Look at the ERR messages, VIBE, BAT, and the mode changes around the moment it went wrong.</li>
+     <li>When you ask for help, share the .BIN together with the parameter file from <code>fc\\backups\\</code>. Those two explain almost everything.</li></ol>`,
+  f:`<b>No log written</b>: no SD card, or LOG_BITMASK is 0. Use a FAT32 card of 32 GB or less. <b>Log too short</b>: normal. Logging starts at arming (LOG_DISARMED is off).`},
+];
+let MODE=localStorage.getItem('setup_mode')||'';
+function selectMode(m){MODE=m;localStorage.setItem('setup_mode',m);render();}
+function keyFor(id){return 'setup_'+MODE+'_'+id;}
+function render(){
+  document.getElementById('m_convert').classList.toggle('sel',MODE==='convert');
+  document.getElementById('m_fresh').classList.toggle('sel',MODE==='fresh');
+  document.getElementById('partsWrap').style.display=MODE==='fresh'?'block':'none';
+  document.getElementById('stepsWrap').style.display=MODE?'block':'none';
+  if(!MODE)return;
+  const list=STEPS.filter(s=>(MODE==='convert'||!s.bf)&&(MODE==='fresh'||!s.fresh));
+  const el=document.getElementById('steps'); el.innerHTML='';
+  let done=0;
+  list.forEach((s,i)=>{
+    const d=localStorage.getItem(keyFor(s.id))==='1'; if(d)done++;
+    const div=document.createElement('div'); div.className='step'+(d?' done':'')+(localStorage.getItem('open_'+s.id)==='1'?' open':''); div.dataset.id=s.id;
+    const runs=(s.run||[]).map((r,k)=>`<button class="btn sm ${r.cls}" data-i="${k}">${r.label}</button>`).join('');
+    div.innerHTML=`<div class="hd"><div class="n">${i+1}</div><div class="t">${s.t}<small>${s.s}</small></div>
+      <input type="checkbox" ${d?'checked':''} title="mark done"></div>
+      <div class="bd">${runs?'<div class="run">'+runs+'</div>':''}${s.b}${s.f?'<div class="fail">If it fails: '+s.f+'</div>':''}</div>`;
+    div.querySelector('.hd').onclick=e=>{if(e.target.tagName!=='INPUT'){div.classList.toggle('open');localStorage.setItem('open_'+s.id,div.classList.contains('open')?'1':'0');if(div.classList.contains('open')&&ON_OPEN[s.id])ON_OPEN[s.id]();}};
+    div.querySelector('input').onchange=e=>{localStorage.setItem(keyFor(s.id),e.target.checked?'1':'0');render();};
+    if(s.id==='motors')wireMotors(div);
+    if(s.id==='radio')wireRadio(div);
+    div.querySelectorAll('.run button[data-i]').forEach(b=>{b.onclick=()=>{const r=s.run[+b.dataset.i];
+      if(r.confirmMsg&&!confirm(r.confirmMsg))return;
+      if(r.tool==='firmware')return downloadFw();
+      if(r.tool==='dfu')return checkDfu();
+      runJob(r.tool,r.label.replace(/^▶ ?/,''));};});
+    el.appendChild(div);
+  });
+  document.getElementById('progtxt').textContent=done+' / '+list.length+' done';
+  document.getElementById('progbar').style.width=(100*done/list.length)+'%';
+  LAST_FT=''; fillRelease(); refreshLive();
+}
+function resetProg(){if(confirm('Clear the ticks for this mode?')){STEPS.forEach(s=>localStorage.removeItem(keyFor(s.id)));render();}}
+
+/* ================= detect / board ================= */
+function detect(){
+  const b=document.getElementById('fcbox'); b.textContent='looking…';
+  fetch('/api/env').then(r=>r.json()).then(e=>{const f=e.fc;
+    if(f.kind==='ardupilot'){const fi=ST.fc_info||{};
+      b.innerHTML='<span class="tag-ok">✓ ArduPilot on '+f.port+'</span>'+(fi.fw?', '+esc(fi.fw):'')+(fi.board?', board <b>'+esc(fi.board)+'</b>':' (the board name arrives once the console is linked)');
+      if(fi.board){document.getElementById('board').value=fi.board;boardChanged();}}
+    else if(f.kind==='betaflight'){
+      b.innerHTML='<span class="tag-warn">⚠ '+esc(f.variant||'Betaflight')+' '+esc(f.version||'')+' on '+f.port+', target <b>'+esc(f.target||f.board||'?')+'</b></span>. '+
+        (f.ardupilot_supported?('<span class="tag-ok">can run ArduPilot as <b>'+esc(f.ardupilot_board)+'</b></span> → do the firmware step'):
+         '<span class="tag-bad">no ArduPilot firmware exists for this board</span>. It cannot be converted; see Requirements for supported boards');
+      if(f.ardupilot_board){document.getElementById('board').value=f.ardupilot_board;boardChanged();}}
+    else if(f.kind==='stm32') b.innerHTML='<span class="tag-warn">⚠ STM32 board on '+f.port+'</span> that answers neither ArduPilot nor Betaflight (Configurator open? close it and retry).';
+    else b.innerHTML='<span class="tag-bad">✗ nothing on USB</span>. Data cable? A board in DFU mode (BOOT held) is invisible here, which is right only while flashing.';
+  }).catch(()=>{b.textContent='detect failed. Is the console running?';});
+}
+function boardChanged(){const v=document.getElementById('board').value.trim();const n=document.getElementById('boardnote');
+  if(!v){n.textContent='';return;}
+  const ok=BOARDS.includes(v);
+  n.innerHTML=(ok?'<span class="tag-ok">✓ in ArduPilot\'s official list</span>':'<span class="tag-bad">✗ not in the official list ('+BOARDS.length+' boards). Check the spelling</span>')+
+    (v==='speedybeef4v5'?' · this exact board was fully tested here':(ok?' · supported by ArduPilot, not tested by this project: the generic parameter set is used and the Betaflight translation fills in your UARTs':''));}
+function loadCfg(){
+  fetch('/api/boards').then(r=>r.json()).then(j=>{BOARDS=j.boards||[];wireBoardPick();boardChanged();});
+  fetch('/api/settings').then(r=>r.json()).then(s=>{CFG=s;
+    document.getElementById('board').value=s.board||'';
+    document.getElementById('link').value=s.link||'auto'; document.getElementById('blename').value=s.ble_name||'';
+    document.getElementById('cruise').value=s.cruise_alt||25; fillRelease(); boardChanged();});}
+function saveCfg(){
+  const board=document.getElementById('board').value.trim(); if(!board){alert('Pick the board');return;}
+  fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({board,link:document.getElementById('link').value,
+    ble_name:document.getElementById('blename').value,cruise_alt:parseFloat(document.getElementById('cruise').value)})})
+   .then(r=>r.json()).then(j=>{const m=document.getElementById('cfgmsg');if(j.ok){CFG=j.settings;m.textContent='saved. The console reconnects with the new link (watch the bar at the bottom)';fillRelease();}else m.textContent=j.err;});}
+function fillRelease(){if(!CFG.release)return;const r=CFG.release;
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('relch',r.ch);set('lockv',r.lock_pwm+' µs');set('dropv',r.drop_pwm+' µs');
+  const pn=document.getElementById('paramnote'); if(pn)pn.textContent=(CFG.board==='speedybeef4v5')?'':'Board is not the SpeedyBee F405 V5 → the generic parameter set will be loaded.';}
+
+/* ================= firmware / dfu ================= */
+function outShow(title,text,state){document.getElementById('otitle').textContent=title;showOut();document.getElementById('olog').textContent=text;
+  const st=document.getElementById('ostate');st.textContent=state;st.className='pill '+(state==='running'?'warn':(state==='finished'||state==='DFU ready'?'ok':'bad'));}
+function downloadFw(){const board=document.getElementById('board').value.trim()||CFG.board;outShow('Firmware download','downloading ArduCopter (stable) for '+board+' …','running');
+  fetch('/api/setup/firmware',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({board})}).then(r=>r.json()).then(j=>{
+    if(j.ok)outShow('Firmware download','OK  '+j.bytes+' bytes\nfrom: '+j.url+'\nsaved: '+j.path+'\n\nNext: BOOT held while plugging USB → Betaflight Configurator → Firmware Flasher → Load Firmware [Local] → this file → Flash.','finished');
+    else outShow('Firmware download','FAILED: '+j.err,'error');});}
+function checkDfu(){outShow('DFU check','looking…','running');
+  fetch('/api/dfu').then(r=>r.json()).then(j=>outShow('DFU check',(j.dfu?'YES. A board is in DFU (bootloader) mode. Click Install above, or flash it from Betaflight Configurator.':'NO board in DFU mode. Hold BOOT before plugging in USB; try another cable or port.')+
+      '\n\nSerial ports seen: '+(j.ports.length?j.ports.map(p=>p.port+' '+(p.kind||'')+' ('+p.desc+')').join(', '):'none'), j.dfu?'DFU ready':'not in DFU'));}
+
+/* ================= Betaflight translation ================= */
+let MIG=null;
+function migPreview(){const t=document.getElementById('migtable');t.innerHTML='<span class="muted">reading…</span>';
+  fetch('/api/setup/migrate').then(r=>r.json()).then(j=>{
+    if(!j.ok){t.innerHTML='<span class="tag-bad">'+esc(j.err)+'</span>';return;} MIG=j;
+    document.getElementById('migsrc').textContent='from '+j.source+' · Betaflight board '+(j.board.betaflight_board||'?')+' → ArduPilot '+(j.board.ardupilot_board||'?')+' ('+j.board.how+')';
+    t.innerHTML='<table class="t"><thead><tr><th></th><th>Parameter</th><th>Value</th><th>Why</th></tr></thead><tbody>'+
+      j.params.map((p,i)=>`<tr><td><input type="checkbox" class="migck" data-i="${i}" checked></td><td><code>${esc(p.name)}</code></td><td><code>${esc(p.value)}</code></td><td class="muted">${esc(p.why)}</td></tr>`).join('')+'</tbody></table>';
+    document.getElementById('mignotes').innerHTML=j.notes.map(n=>'• '+esc(n)).join('<br>');
+    document.getElementById('migapply').style.display='inline-flex';});}
+function migApply(){if(!MIG)return;const sel={};document.querySelectorAll('.migck').forEach(c=>{if(c.checked){const p=MIG.params[+c.dataset.i];sel[p.name]=p.value;}});
+  if(!Object.keys(sel).length){alert('nothing ticked');return;}
+  fetch('/api/setup/migrate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({params:sel})}).then(r=>r.json()).then(j=>{
+    if(!j.ok){alert(j.err);return;} document.getElementById('migstat').textContent='writing '+j.count+' parameters over the drone link. Each one is verified below';});}
+
+/* ================= frame ================= */
+function setFrame(t){if(!ST.connected){alert(linkWord());return;}cmd({action:'set_params',params:{FRAME_CLASS:1,FRAME_TYPE:t}}).then(()=>{setTimeout(()=>cmd({action:'reboot'}),2500);setTimeout(()=>cmd({action:'get_params',names:['FRAME_TYPE']}),12000);});}
+
+/* ================= radio ================= */
+const REC={on:false,min:[],max:[]}, DIR={}, RCMAP={roll:1,pitch:2,throttle:3,yaw:4};
+function wireRadio(div){const bars=div.querySelector('#rcbars');bars.innerHTML=Array.from({length:16},(_,i)=>`<div class="rcbar">ch${i+1} <span id="rcv${i+1}">–</span><div class="tr"><i id="rcb${i+1}"></i><b id="rcm${i+1}" style="display:none"></b></div></div>`).join('');}
+function recToggle(){REC.on=!REC.on;if(REC.on){REC.min=Array(16).fill(9999);REC.max=Array(16).fill(0);}
+  document.getElementById('recbtn').textContent=REC.on?'■ Stop recording':'▶ 1 Record: move every stick and switch to its ends (10–20 s)';}
+function rcWrite(){const rc=ST.rc||[];const n=ST.rc_count||0;const p={};let ch=0;
+  for(let i=0;i<Math.min(n,16);i++){if(REC.max[i]-REC.min[i]>300){p['RC'+(i+1)+'_MIN']=REC.min[i];p['RC'+(i+1)+'_MAX']=REC.max[i];
+    p['RC'+(i+1)+'_TRIM']=(i+1===RCMAP.throttle)?REC.min[i]:rc[i];ch++;}}
+  if(!ch){alert('Record first: move every stick to its ends.');return;}
+  if(confirm('Sticks centred and throttle down? Writing calibration for '+ch+' channels.'))cmd({action:'set_params',params:p}).then(()=>{document.getElementById('recinfo').textContent='written '+ch+' channels, see the log';});}
+function dirCheck(axis){const v=(ST.rc||[])[RCMAP[axis]-1];if(!v){alert('no radio');return;}
+  // ArduPilot: roll right / yaw right / throttle up = HIGH; pitch FORWARD = LOW
+  const rev=axis==='pitch'?v>1600:v<1400; DIR[axis]=rev?1:0;
+  document.getElementById('dirinfo').innerHTML=Object.entries(DIR).map(([a,r])=>a+': '+(r?'<span class="warn">reversed → will set RC'+RCMAP[a]+'_REVERSED=1</span>':'<span class="ok">normal</span>')).join(' · ');}
+function dirWrite(){const p={};for(const [a,r] of Object.entries(DIR))p['RC'+RCMAP[a]+'_REVERSED']=r;if(!Object.keys(p).length){alert('Check the four directions first.');return;}cmd({action:'set_params',params:p});}
+let SWBASE=null;
+function swDetect(kind){const rc=ST.rc||[];if(!rc.length){alert('no radio');return;}
+  if(!SWBASE){SWBASE=rc.slice();document.getElementById('swinfo').textContent='baseline taken. Now flip the switch and click the same button again';return;}
+  let best=0,bd=0;for(let i=4;i<16;i++){const d=Math.abs(rc[i]-SWBASE[i]);if(d>bd){bd=d;best=i+1;}} SWBASE=null;
+  if(bd<300){document.getElementById('swinfo').textContent='no switch moved (ch5–16)';return;}
+  if(kind==='mode'){if(confirm('Channel '+best+' moved. Use it as the MODE switch (FLTMODE_CH='+best+')?'))cmd({action:'set_params',params:{FLTMODE_CH:best}});}
+  else{const [opt,name]=SW_OPT[kind];if(confirm('Channel '+best+' moved. Use it as the '+name+' (RC'+best+'_OPTION='+opt+')?'))cmd({action:'set_params',params:{['RC'+best+'_OPTION']:opt}});}
+  document.getElementById('swinfo').textContent=kind+' switch: channel '+best;}
+
+/* ================= servo ================= */
+function setServo(v){v=parseInt(v);document.getElementById('sl').value=v;document.getElementById('slv').textContent=v;cmd({action:'servo',pwm:v});}
+function servoOff(){cmd({action:'servo_off'});}
+function saveAs(which){const v=parseInt(document.getElementById('sl').value);const r=Object.assign({},CFG.release);r[which+'_pwm']=v;
+  fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({release:r})}).then(x=>x.json()).then(j=>{if(j.ok){CFG=j.settings;fillRelease();}else alert(j.err);});}
+function swapDir(){const r=Object.assign({},CFG.release);[r.drop_pwm,r.lock_pwm]=[r.lock_pwm,r.drop_pwm];
+  fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({release:r})}).then(x=>x.json()).then(j=>{if(j.ok){CFG=j.settings;fillRelease();}else alert(j.err);});}
+
+/* ================= live state ================= */
+function refreshLive(){
+  const g=id=>document.getElementById(id);
+  if(g('pinv'))g('pinv').textContent=ST.connected?((ST.servo_pwm||0)+' µs'+(ST.servo_pwm?'':' (signal off)')):linkWord();
+  if(g('msay'))g('msay').textContent=ST.connected?fcsays(/motor/i):linkWord();
+  if(g('acsay'))g('acsay').textContent=ST.connected?fcsays(/calib|place|position|level|accel/i):linkWord();
+  if(g('gpslive'))g('gpslive').textContent=ST.connected?(ST.sats+' sats, fix '+ST.fix):linkWord();
+  if(g('migres'))g('migres').innerHTML=(ST.msgs||[]).filter(x=>/\(verified\)|\*\*\* FAILED|skipped/.test(x)).slice(0,10).map(esc).join('<br>');
+  if(g('frameCur')){const ft=(ST.params||{}).FRAME_TYPE;g('frameCur').textContent=ft===undefined?'–':({12:'12 props-IN (BetaFlightX)',18:'18 props-OUT (BetaFlightX reversed)'}[ft]||('type '+ft));}
+  if(g('magbar')){const m=ST.magcal;g('magbar').style.width=(m?m.pct:0)+'%';g('magsay').textContent=m?(m.status+' '+m.pct+'%'+(m.report?', '+m.report:'')):fcsays(/compass|mag/i);}
+  if(g('rccount')){const rc=ST.rc||[];g('rccount').textContent=ST.connected?((ST.rc_count||0)+(REC.on?' · RECORDING':'')):linkWord();
+    for(let i=0;i<16;i++){const v=rc[i]||0;if(REC.on&&v){REC.min[i]=Math.min(REC.min[i],v);REC.max[i]=Math.max(REC.max[i],v);}
+      const b=g('rcb'+(i+1));if(b){b.style.width=v?Math.max(0,Math.min(100,(v-800)/12))+'%':'0';g('rcv'+(i+1)).textContent=v||'–';}}}
+  const mp=document.getElementById('mpanel'); if(mp&&mp.closest('.step'))verdict(mp);
+  refreshLive2(); refreshLive3(); refreshLive4(); refreshLive5();
+}
+// polled with short requests (2 Hz) instead of a permanent stream - see ops.html for why
+let pollBusy=false, pollN=0;
+async function pollState(){
+  if(pollBusy||(document.hidden&&(++pollN%10)))return; pollBusy=true;   // hidden tab: every 5 s
+  try{const r=await fetch('/api/state',{cache:'no-store'}); if(r.ok){ST=await r.json();refreshLive();}}catch(e){}
+  finally{pollBusy=false;}
+}
+pollState(); setInterval(pollState,500);
+
+/* ================= job runner ================= */
+let poll=null;
+function showOut(){document.getElementById('out').style.display='grid';document.body.classList.add('hasout');}
+function hideOut(){document.getElementById('out').style.display='none';document.body.classList.remove('hasout');}
+function runJob(tool,label){
+  fetch('/api/setup/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tool})})
+   .then(r=>r.json()).then(j=>{if(!j.ok){alert(j.err||'could not start');return;}document.getElementById('otitle').textContent=label;showOut();pollJob();});}
+function pollJob(){clearInterval(poll);
+  const tick=()=>fetch('/api/setup/status').then(r=>r.json()).then(j=>{
+    const pre=document.getElementById('olog');pre.textContent=j.lines.join('\n');pre.scrollTop=pre.scrollHeight;
+    const st=document.getElementById('ostate');
+    if(j.done){clearInterval(poll);st.textContent=j.rc===0?'finished':'exited with error '+j.rc;st.className='pill '+(j.rc===0?'ok':'bad');}
+    else{st.textContent='running';st.className='pill warn';}});
+  tick();poll=setInterval(tick,1000);}
+function stopJob(){fetch('/api/setup/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}
+loadCfg(); render();
+fetch('/api/setup/status').then(r=>r.json()).then(j=>{if(j.tool&&!j.done){document.getElementById('otitle').textContent=j.tool;showOut();pollJob();}}).catch(()=>{});
+</script>
+</body></html>

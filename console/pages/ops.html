@@ -1,0 +1,345 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operations · FireFighting Drone Portal</title>
+<link rel="stylesheet" href="/static/leaflet/leaflet.css">
+<link rel="stylesheet" href="/static/portal.css">
+<style>
+ body{height:100vh;display:grid;grid-template-rows:auto auto 1fr;overflow:hidden}
+ #alert{display:flex;align-items:center;justify-content:center;height:32px;padding:0 20px;
+        background:var(--panel);border-bottom:1px solid var(--line);color:var(--muted);
+        font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+ #alert.active{background:#2a1f08;color:var(--warn);border-bottom-color:#5a4210}
+ #layout{display:grid;grid-template-columns:320px 1fr;min-height:0}
+ aside{display:grid;grid-template-rows:auto auto 1fr;gap:12px;padding:12px;min-height:0;
+       background:var(--bg);border-right:1px solid var(--line);overflow:hidden}
+ #pre{display:grid;gap:8px}
+ .pbox{border:1px solid var(--line);border-left:3px solid var(--dim);background:var(--panel);padding:9px 12px 8px}
+ .pbox.ok{border-left-color:var(--ok)} .pbox.bad{border-left-color:var(--bad)}
+ .pbox .ttl{display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+ .pbox.ok .ttl{color:var(--ok)} .pbox.bad .ttl{color:var(--bad)}
+ .prow{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);padding:3px 0;border-top:1px solid var(--line)}
+ .prow b{font-family:var(--mono);font-weight:600}
+ .prow.ok{color:var(--text)} .prow.ok b{color:var(--ok)} .prow.bad b{color:var(--bad)} .prow.unk b{color:var(--dim)}
+ #actions{display:flex;flex-direction:column;gap:8px}
+ #actions .hint{border:1px solid var(--line);background:var(--panel);padding:10px 12px;font-size:13px;color:var(--muted)}
+ #actions button{height:42px;padding:0 12px;border:1px solid var(--line2);background:var(--panel2);color:var(--text);
+                 font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+ #actions button:hover{border-color:var(--accent)}
+ #inflight{display:none;border:1px solid var(--warn);border-left:4px solid var(--warn);background:var(--panel);padding:10px 12px;font-size:13px;line-height:1.5}
+ #inflight b{color:var(--warn);font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
+ #inflight .mono{font-family:var(--mono);color:var(--text)}
+ #calgyro{height:34px!important;color:var(--muted)!important;font-weight:600!important;font-size:11px!important;background:transparent!important}
+ #dropball{background:#7a1f25!important;border-color:#b32d35!important;color:#fff!important;flex:2}
+ #lockball{background:transparent!important;border-color:var(--line2)!important;color:var(--text)!important;flex:1}
+ #droprow{gap:8px}
+ #logwrap{min-height:0;display:grid;grid-template-rows:auto 1fr;background:var(--panel);border:1px solid var(--line);overflow:hidden}
+ #logwrap h3{margin:0;padding:8px 12px;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+ #msgs{overflow-y:auto;padding:8px 12px;font-family:var(--mono);font-size:12px;line-height:1.6;color:#b4b4bc}
+ main{display:grid;grid-template-rows:auto 1fr;min-height:0;position:relative}
+ #statusbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;height:44px;padding:0 12px;background:var(--bg);border-bottom:1px solid var(--line)}
+ .chip{display:inline-flex;align-items:center;height:28px;padding:0 10px;background:var(--panel);border:1px solid var(--line2);
+       font-family:var(--mono);font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+ .chip.ok{color:var(--ok);border-color:var(--ok)} .chip.warn{color:var(--warn);border-color:var(--warn)} .chip.bad{color:var(--bad);border-color:var(--bad)}
+ #c_spd::before{content:"SPD "} #c_batt::before{content:"BATT "}
+ #map{min-height:0;height:100%;background:#0a0c0f}
+ /* site panel */
+ #siteov{position:absolute;top:56px;right:12px;z-index:1200;width:380px;background:var(--panel);border:1px solid var(--line2);
+         padding:16px;box-shadow:0 18px 50px rgba(0,0,0,.6);display:none}
+ #siteov h3{margin:0 0 4px;font-size:15px}
+ #siteov p{margin:0 0 12px;color:var(--muted);font-size:13px}
+ #siteov input{width:100%;padding:8px 10px;border:1px solid var(--line2);background:var(--bg);color:var(--text);font-size:13px}
+ #siteov .row{display:flex;gap:6px;margin-bottom:8px}
+ #siteov .row input{flex:1}
+ #hits{max-height:150px;overflow:auto;margin:-4px 0 8px}
+ #hits div{padding:7px 8px;cursor:pointer;font-size:13px;color:var(--muted)}
+ #hits div:hover{background:var(--panel2);color:var(--text)}
+ .leaflet-container{font-family:var(--font)}
+ .leaflet-control-attribution{background:rgba(10,10,11,.75)!important;color:var(--dim)!important;font-size:10px!important}
+ .leaflet-control-attribution a{color:var(--muted)!important}
+ .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel2);color:var(--text);box-shadow:0 10px 30px rgba(0,0,0,.6);border-radius:0}
+ .leaflet-popup-content{margin:12px 14px;font-size:13px}
+ .leaflet-popup-content button{font-family:inherit;cursor:pointer}
+ .leaflet-tooltip{background:var(--panel2);color:var(--text);border:1px solid var(--line2);border-radius:0;font-weight:600;font-size:12px}
+ .leaflet-tooltip-top:before{border-top-color:var(--line2)}
+ .leaflet-container a.leaflet-popup-close-button{color:var(--muted)}
+</style></head><body>
+<div class="hdr">
+  <div class="brand"><span class="dot"></span>FireFighting Drone Portal <span class="sub">Operations</span><span class="sub" id="sitename"></span></div>
+  <div class="menu" id="menu"><button onclick="document.getElementById('menu').classList.toggle('open')">Menu ▾</button>
+    <div class="dd">
+      <div class="lbl">Pages</div>
+      <a href="/">Portal home</a><a href="/ops">Operations</a><a href="/setup">Setup</a><a href="/requirements">Requirements</a>
+      <div class="sep"></div><div class="lbl">Map</div>
+      <a href="#" onclick="openSite();return false">Set site location…</a>
+      <a href="#" onclick="goSite();return false">Go to site</a>
+      <a href="#" onclick="fitAll();return false">Fit all factories</a>
+      <a href="#" onclick="centerDrone();return false">Center on drone</a>
+      <div class="sep"></div><div class="lbl">Drone</div>
+      <a href="#" onclick="rtlIfLinked();return false">Return home (only while linked)</a>
+    </div></div>
+</div>
+<div id="alert">ALERT STATUS: NONE</div>
+<div id="layout">
+ <aside>
+  <div id="pre"></div>
+  <div id="actions">
+   <div class="hint">Click a factory on the map to fly a mission. Click empty map to add a factory.</div>
+   <div id="inflight"><b>In flight: the laptop cannot reach the drone</b>
+     Everything runs inside the aircraft. Take over: <span class="mono">mode switch</span>. Come home: <span class="mono" id="rtlsw">return switch</span>.</div>
+   <button id="calgyro" style="display:none">⟳ CALIBRATE GYRO</button>
+   <div id="droprow" style="display:none">
+    <button id="dropball">🔓 DROP BALL</button>
+    <button id="lockball">🔒 LOCK</button>
+   </div>
+  </div>
+  <div id="logwrap"><h3>Log</h3><div id="msgs"></div></div>
+ </aside>
+ <main>
+  <div id="statusbar">
+   <span class="chip" id="c_link">LINK …</span>
+   <span class="chip" id="c_mode">MODE -</span>
+   <span class="chip" id="c_arm">DISARMED</span>
+   <span class="chip" id="c_alt">ALT 0 m</span>
+   <span class="chip" id="c_spd">0 m/s</span>
+   <span class="chip" id="c_batt">0 V</span>
+   <span class="chip" id="c_gps">GPS -</span>
+  </div>
+  <div id="map"></div>
+  <div id="siteov">
+    <h3>Set your site</h3>
+    <p>Find the place, pan/zoom the map until it shows your buildings, then save. The map opens here every time.</p>
+    <div class="row"><input id="q" placeholder="Search: school name, estate, town…" onkeydown="if(event.key==='Enter')geocode()"><button class="btn sm" onclick="geocode()">Search</button></div>
+    <div id="hits"></div>
+    <div class="row"><button class="btn sm" style="flex:1" onclick="useMyLocation()">Use this laptop's location</button><button class="btn sm" style="flex:1" onclick="useDrone()">Use the drone's GPS</button></div>
+    <div class="row"><input id="glat" placeholder="latitude"><input id="glon" placeholder="longitude"><button class="btn sm" onclick="gotoLatLon()">Go</button></div>
+    <div class="row"><input id="sname" placeholder="Site name (e.g. Riverside Industrial Estate)"></div>
+    <div class="row"><button class="btn primary" style="flex:2" onclick="saveSite()">Save this view as the site</button><button class="btn sm" onclick="closeSite()">Cancel</button></div>
+  </div>
+ </main>
+</div>
+<script src="/static/leaflet/leaflet.js"></script>
+<script>
+document.addEventListener('click',e=>{const m=document.getElementById('menu');if(!m.contains(e.target))m.classList.remove('open');});
+const map = L.map('map',{zoomControl:false});
+map.attributionControl.setPrefix(false);          // no Leaflet link or flag, only the imagery credit
+// tiles straight from the imagery server (a different host, so they never queue behind this page's own requests)
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:19, maxNativeZoom:18, attribution:'Imagery © Esri'}).addTo(map);
+setTimeout(()=>map.invalidateSize(),50); setTimeout(()=>map.invalidateSize(),400);
+window.addEventListener('resize',()=>map.invalidateSize());
+let droneMk=null, trail=L.polyline([],{color:'#f4f4f5',weight:3,opacity:.85}).addTo(map);
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function wire(id,fn,n=0){const el=document.getElementById(id);
+  if(el)el.onclick=fn;else if(n<6)setTimeout(()=>wire(id,fn,n+1),120);}
+let ESTATE=null, SITE=null, LAST=null, CRUISE=25, GEOM_ASKED=0;
+/* ---- flight geometry: the FC's fence vs this flight (pure function, testable) ---- */
+const GEOM_PARAMS=['FENCE_ENABLE','FENCE_TYPE','FENCE_ALT_MAX','FENCE_RADIUS','RTL_ALT_M','FLTMODE_CH'].concat([5,6,7,8,9,10,11,12,13,14,15,16].map(n=>'RC'+n+'_OPTION'));
+function switchText(p){const rtl=[5,6,7,8,9,10,11,12,13,14,15,16].find(n=>p['RC'+n+'_OPTION']===4);
+  return rtl?('return switch (ch '+rtl+')'):'the return-home switch from Setup → Radio';}
+function havDist(a,b,c,d){const R=6371000,t=Math.PI/180,x=(c-a)*t,y=(d-b)*t;const h=Math.sin(x/2)**2+Math.cos(a*t)*Math.cos(c*t)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function geometryIssues(f,p,from,cruise){
+  // f: factory {lat,lon}; p: FC params; from: {lat,lon} where the drone will ARM (its position now, else the site)
+  // returns [{msg, hard}]: hard = the mission cannot succeed / no fly-away protection; soft = worth knowing
+  const out=[]; if(!p||p.FENCE_ENABLE===undefined)return out;   // fence not read yet: nothing to judge
+  if(!(p.FENCE_ENABLE>0)){out.push({hard:true,msg:'The safety fence is OFF (FENCE_ENABLE 0): nothing stops a fly-away or a climb into controlled airspace.'});return out;}
+  const type=p.FENCE_TYPE===undefined?7:p.FENCE_TYPE;
+  if((type&1)&&p.FENCE_ALT_MAX!==undefined&&cruise>=p.FENCE_ALT_MAX-3)
+    out.push({hard:true,msg:'Mission altitude '+cruise+' m is at the fence ceiling ('+p.FENCE_ALT_MAX+' m): the drone would stop climbing and return.'});
+  if((type&2)&&p.FENCE_RADIUS!==undefined&&from){const d=havDist(from.lat,from.lon,f.lat,f.lon);
+    if(d>=p.FENCE_RADIUS-10)out.push({hard:true,msg:'The factory is '+Math.round(d)+' m from the launch point; the fence radius is '+p.FENCE_RADIUS+' m: the drone would refuse the waypoint or turn back.'});}
+  if(p.RTL_ALT_M!==undefined&&p.RTL_ALT_M<cruise-1)
+    out.push({hard:false,msg:'Return altitude ('+p.RTL_ALT_M+' m) is below the mission altitude ('+cruise+' m). A return started low (e.g. a failsafe during the climb) flies home at '+p.RTL_ALT_M+' m.'});
+  return out;}
+function geometryGate(f){
+  const p=(LAST&&LAST.params)||{};
+  const from=(LAST&&LAST.lat!==null&&LAST.lat!==undefined)?{lat:LAST.lat,lon:LAST.lon}:SITE;
+  const iss=geometryIssues(f,p,from,CRUISE), hard=iss.filter(x=>x.hard), soft=iss.filter(x=>!x.hard);
+  if(hard.length){alert('FLIGHT BLOCKED by the safety fence settings:\n\n• '+hard.map(x=>x.msg).join('\n• ')+'\n\nFix it in Setup → "Safety fence and altitudes" (one click writes matching values), then fly.');return false;}
+  if(soft.length&&!confirm('Check before flying:\n\n• '+soft.map(x=>x.msg).join('\n• ')+'\n\nSetup → "Safety fence and altitudes" fixes this in one click. Fly anyway?'))return false;
+  return true;}
+function fitAll(){if(ESTATE&&ESTATE.factories.length){map.invalidateSize();map.fitBounds(ESTATE.factories.map(f=>[f.lat,f.lon]),{padding:[60,60],maxZoom:17});}}
+function centerDrone(){if(droneMk)map.setView(droneMk.getLatLng(),Math.max(map.getZoom()||15,17));}
+function goSite(){if(SITE)map.setView([SITE.lat,SITE.lon],SITE.zoom||16);}
+
+/* ---- site: where the map opens ---- */
+function openSite(){document.getElementById('siteov').style.display='block';if(SITE)document.getElementById('sname').value=SITE.name||'';}
+function closeSite(){document.getElementById('siteov').style.display='none';}
+function geocode(){
+  const q=document.getElementById('q').value.trim(); if(!q)return;
+  const h=document.getElementById('hits'); h.innerHTML='<div>searching…</div>';
+  fetch('/api/geocode?q='+encodeURIComponent(q)).then(r=>r.json()).then(list=>{
+    if(!Array.isArray(list)||!list.length){h.innerHTML='<div>no result. Try a bigger place name, or type the coordinates below</div>';return;}
+    h.innerHTML=list.map((x,i)=>`<div data-i="${i}">${esc(x.name)}</div>`).join('');
+    h.querySelectorAll('div').forEach(d=>d.onclick=()=>{const x=list[+d.dataset.i];map.setView([x.lat,x.lon],16);
+      if(!document.getElementById('sname').value)document.getElementById('sname').value=x.name.split(',')[0];h.innerHTML='';});
+  }).catch(()=>{h.innerHTML='<div>search needs internet</div>';});
+}
+function useMyLocation(){
+  if(!navigator.geolocation){alert('This browser has no location service.');return;}
+  navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],16),
+    ()=>alert('Location not available (allow it in the browser, or search / type coordinates).'),{timeout:10000});
+}
+function useDrone(){if(LAST&&LAST.lat!==null&&LAST.lat!==undefined)map.setView([LAST.lat,LAST.lon],17);else alert('The drone has no GPS position yet (needs to be powered outdoors with a fix).');}
+function gotoLatLon(){const a=parseFloat(document.getElementById('glat').value),b=parseFloat(document.getElementById('glon').value);
+  if(isNaN(a)||isNaN(b)){alert('Type latitude and longitude, e.g. 51.5007 and -0.1246');return;} map.setView([a,b],16);}
+function saveSite(){
+  const c=map.getCenter(); const name=document.getElementById('sname').value.trim()||'My site';
+  fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({site:{name,lat:c.lat,lon:c.lng,zoom:map.getZoom()}})}).then(r=>r.json()).then(j=>{
+    if(!j.ok){alert(j.err);return;} SITE=j.settings.site; showSiteName(); closeSite();});
+}
+function showSiteName(){document.getElementById('sitename').textContent=SITE?SITE.name:'';}
+
+let estateLayer=L.layerGroup().addTo(map), firstEstate=true;
+function renderEstate(e){
+  ESTATE=e;
+  estateLayer.clearLayers();
+  e.factories.forEach(f=>{
+    const mk=L.marker([f.lat,f.lon],{draggable:true,
+      icon:L.divIcon({html:'<div style="font-size:26px">🏭</div>',className:''})})
+      .addTo(estateLayer).bindTooltip(esc(f.id)+': '+esc(f.name),{permanent:true,direction:'top'});
+    mk.on('dragend',()=>{const p=mk.getLatLng();
+      estateCmd({op:'move',id:f.id,lat:p.lat,lon:p.lng});});
+    mk.on('click',()=>{
+      L.popup().setLatLng(mk.getLatLng()).setContent(
+        `<b>${esc(f.id)}: ${esc(f.name)}</b><br>
+         <button id="fmis" style="margin-top:8px;padding:10px 14px;background:#f4f4f5;color:#0c0c0e;border:0;font-size:14px;font-weight:800">FLY MISSION ⇄</button><br>
+         <button id="fren" style="margin-top:8px;padding:5px 9px;font-size:12px;background:#1d1d21;color:#ececee;border:1px solid #333339">rename</button>
+         <button id="fdel" style="padding:5px 9px;font-size:12px;background:#4a1a1e;color:#ffd7d9;border:1px solid #7a2b31">delete</button>`).openOn(map);
+      wire('fmis',()=>{
+        if(!geometryGate(f)){map.closePopup();return;}
+        if(confirm('Fly the mission to '+f.id+': '+f.name+'?\nThe drone will ARM and TAKE OFF by itself,\nDROP THE BALL at the factory, and fly home.\n\nBefore OK: ball locked in, launch area clear of people, battery charged.'))
+          cmd({action:'mission',factory:f.id,confirm:'FLY'}).then(j=>{
+            if(!j.ok&&j.err==='release_not_locked'&&
+               confirm('⚠ DROPPER IS NOT LOCKED (state: '+(j.release||'unknown')+').\nNormal flights: load the ball, press LOCK, then fly.\n\nFly anyway WITHOUT a locked ball (test flight)?'))
+              cmd({action:'mission',factory:f.id,confirm:'FLY',allow_unlocked:true});
+            else if(!j.ok&&j.err&&j.err!=='release_not_locked')alert('Mission refused: '+j.err);});
+        map.closePopup();});
+      wire('fdel',()=>{
+        if(confirm('Delete '+f.id+': '+f.name+'?'))estateCmd({op:'delete',id:f.id});
+        map.closePopup();});
+      wire('fren',()=>{
+        const n=prompt('New name for '+f.id, f.name);
+        if(n)estateCmd({op:'rename',id:f.id,name:n});
+        map.closePopup();});
+    });
+  });
+  if(firstEstate){firstEstate=false;
+    map.invalidateSize();
+    if(SITE) map.setView([SITE.lat,SITE.lon],SITE.zoom||16);
+    else if(e.factories.length)map.fitBounds(e.factories.map(f=>[f.lat,f.lon]),{padding:[60,60],maxZoom:17});
+    else if(e.launch_pad) map.setView([e.launch_pad.lat,e.launch_pad.lon],15);
+    else map.setView([20,0],2);
+    if(!SITE) openSite();               // first run at a new place: ask where we are
+  }
+}
+function estateCmd(o){fetch('/api/estate',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(o)}).then(r=>r.json()).then(e=>{if(e.ok)renderEstate(e.estate);else alert(e.err);});}
+fetch('/api/settings').then(r=>r.json()).then(st=>{SITE=st.site||null;CRUISE=st.cruise_alt||25;showSiteName();})
+  .catch(()=>{}).then(()=>fetch('/api/estate').then(r=>r.json()).then(renderEstate));
+
+map.on('click', ev=>{
+  if(document.getElementById('siteov').style.display==='block')return;   // choosing a site: just pan
+  const {lat,lng}=ev.latlng;
+  const p=L.popup().setLatLng(ev.latlng)
+    .setContent(`<button id="padd" style="margin-top:2px;padding:9px 13px;background:#1d1d21;color:#ececee;border:1px solid #333339;font-weight:700">ADD FACTORY HERE</button>`)
+    .openOn(map);
+  wire('padd',()=>{
+    const n=prompt('Factory name?');
+    if(n)estateCmd({op:'add',lat,lon:lng,name:n});
+    map.closePopup();});
+});
+
+function cmd(o){return fetch('/api/cmd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)}).then(r=>r.json()).catch(()=>({ok:false}));}
+function rtlIfLinked(){
+  if(!LAST||LAST.connected!==true){alert('No link to the drone right now. In the air the laptop cannot reach it: use the return switch on the radio.');return;}
+  if(confirm('Return home now? The drone climbs to the return altitude, flies to the launch point and lands.'))cmd({action:'rtl'});}
+let dropT=0;
+const dbtn=document.getElementById('dropball');
+dbtn.onclick=()=>{
+  if(Date.now()>dropT){cmd({action:'arm_drop'});dropT=Date.now()+8000;
+    dbtn.textContent='⚠ CONFIRM DROP?';dbtn.style.background='#e53e3e';
+    setTimeout(()=>{if(Date.now()>=dropT){dbtn.textContent='🔓 DROP BALL';dbtn.style.background='';}},8100);}
+  else{cmd({action:'drop',confirm:'DROP'});dropT=0;
+    dbtn.textContent='🔓 DROP BALL';dbtn.style.background='';}};
+document.getElementById('lockball').onclick=()=>cmd({action:'lock'});
+document.getElementById('calgyro').onclick=()=>{
+  if(confirm('Calibrate gyros?\nThe drone must sit PERFECTLY STILL on level ground for ~10 seconds.'))
+    cmd({action:'calgyro'});};
+
+const alertEl=document.getElementById('alert');
+// state is POLLED with short requests (1 Hz). A permanent stream per tab would exhaust the
+// browser's ~6 connections per address once a few portal tabs are open - the map then never loads.
+let pollBusy=false, pollN=0;
+async function pollState(){
+  if(pollBusy||(document.hidden&&(++pollN%5)))return; pollBusy=true;   // hidden tab: every 5 s instead of 1 s
+  try{const r=await fetch('/api/state',{cache:'no-store'}); if(!r.ok)throw 0; onState({data:await r.text()});}
+  catch(e){const c=document.getElementById('c_link');c.textContent='CONSOLE LINK DOWN';c.className='chip bad';}
+  finally{pollBusy=false;}
+}
+pollState(); setInterval(pollState,1000);
+function onState(e){
+  const s=JSON.parse(e.data); LAST=s;
+  const live=s.connected===true;
+  if(live&&!GEOM_ASKED&&!s.armed){GEOM_ASKED=1;cmd({action:'get_params',names:GEOM_PARAMS});}   // fence limits, once per link-up, never in flight
+  if(!live)GEOM_ASKED=0;
+  const lk=(s.link_kind||'').toUpperCase();
+  document.getElementById('c_link').textContent = live?('LINK OK · '+lk):('NO LINK'+(lk?' · '+lk:''));
+  document.getElementById('c_link').className='chip '+(live?'ok':'bad');
+  const MODE_SHORT={STABILIZE:'manual',ALT_HOLD:'height hold',LOITER:'GPS hold',POSHOLD:'GPS hold',GUIDED:'autopilot',AUTO:'mission',RTL:'coming home',LAND:'landing',SMART_RTL:'coming home',BRAKE:'stopping',AUTOTUNE:'tuning'};
+  const mc=document.getElementById('c_mode');
+  mc.textContent=live?('MODE '+s.mode+(MODE_SHORT[s.mode]?' · '+MODE_SHORT[s.mode]:'')+(s.busy?' · '+s.busy:'')):'MODE –';
+  mc.title={STABILIZE:'Manual: self-levels, you hold the height (Betaflight Angle)',LOITER:'GPS hold: hands off and it stays put; sticks move it',GUIDED:'Autopilot: flies where the laptop says',AUTO:'Flying the onboard mission',RTL:'Returning to the launch point and landing',LAND:'Landing straight down'}[s.mode]||'';
+  document.getElementById('c_arm').textContent=live?(s.motor_test?'MOTOR TEST':(s.armed?'ARMED':'DISARMED')):'ARM –';
+  document.getElementById('c_arm').className='chip '+(live&&s.armed?'warn':'');
+  document.getElementById('c_alt').textContent=live?('ALT '+s.alt.toFixed(1)+' m'):'ALT –';
+  document.getElementById('c_spd').textContent=live?(s.groundspeed.toFixed(1)+' m/s'):'–';
+  document.getElementById('c_batt').textContent=live?(s.batt_v.toFixed(1)+' V'):'–';
+  document.getElementById('c_gps').textContent=live?('GPS '+s.sats+' sats fix'+s.fix):'GPS –';
+  document.getElementById('inflight').style.display=(s.armed&&!s.motor_test)?'block':'none';
+  if(s.armed)document.getElementById('rtlsw').textContent=switchText(s.params||{});
+  document.getElementById('calgyro').style.display=(s.connected&&!s.armed)?'block':'none';
+  document.getElementById('droprow').style.display=(s.connected&&!s.armed)?'flex':'none';
+  const mm=(s.busy||'').match(/^mission (\S+)/);
+  if(mm){const f=ESTATE?ESTATE.factories.find(x=>x.id===mm[1]):null;
+    alertEl.textContent='ALERT STATUS: '+(f?(f.id+': '+f.name):mm[1])+' · MISSION RUNNING';alertEl.className='active';}
+  else{alertEl.textContent='ALERT STATUS: NONE';alertEl.className='';}
+  const sig=s.connected===true;
+  const sen=sig?(s.sensors||{}):{};      // dead link = unknown, never stale ticks
+  const ready=sig&&sen.prearm===true;
+  const objections=sig?(s.prearm_msgs||[]).join(' | ').toLowerCase():'';
+  const clean=(re)=>!re.test(objections);
+  const merge=(hw,okByReason)=>{
+    if(!okByReason) return false;          // FC is actively complaining about it
+    if(hw===true) return true;
+    if(hw===false) return false;
+    return okByReason && ready===true ? true : hw; // unknown hw: green only when fully ready
+  };
+  const row=(v,l)=>{const m=v===true?'✓':(v===false?'✗':'–');
+    const c=v===true?'ok':(v===false?'bad':'unk');
+    return `<div class="prow ${c}"><span>${l}</span><b>${m}</b></div>`;};
+  const box=(ok,label,rows)=>`<div class="pbox ${ok?'ok':'bad'}">
+      <div class="ttl"><span>${label}</span><span>${ok?'READY':'NOT READY'}</span></div>${rows}</div>`;
+  const radioOk=sig?merge(sen.rc, clean(/rc |rc not|radio|throttle below/)):null;
+  const gpsOk=sig?((s.fix>=3 && clean(/gps|hdop/))?true:false):null;
+  document.getElementById('pre').innerHTML=
+    box(sig&&radioOk===true, 'SIGNAL',
+        row(sig,'Bluetooth link')+
+        row(radioOk,'Radio (TX)'))+
+    box(ready, 'ARMING',
+        row(merge(sen.gyro,clean(/gyro/)),'Gyro')+
+        row(merge(sen.accel,clean(/accel/)),'Accel')+
+        row(merge(sen.compass,clean(/mag|compass|yaw/)),'Compass')+
+        row(gpsOk,`GPS (${s.sats} sats)`)+
+        row(merge(sen.position,clean(/position|home|fence/)),'Position')+
+        row(merge(sen.battery,clean(/batt/)),`Battery ${s.batt_v.toFixed(1)} V`));
+  document.getElementById('msgs').innerHTML=s.msgs.map(esc).join('<br>');
+  if(s.lat!==null){
+    const ll=[s.lat,s.lon];
+    if(!droneMk){droneMk=L.marker(ll,{icon:L.divIcon({html:'<div style="font-size:28px">🚁</div>',className:''})}).addTo(map);
+      if(!SITE) map.setView(ll, Math.max(map.getZoom()||15, 17));}
+    else droneMk.setLatLng(ll);
+    const t=trail.getLatLngs(); if(!t.length||map.distance(t[t.length-1],ll)>1) trail.addLatLng(ll);
+  }
+};
+</script></body></html>

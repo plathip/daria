@@ -1,0 +1,61 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FireFighting Drone Portal</title>
+<link rel="stylesheet" href="/static/portal.css">
+<style>
+ body{display:grid;grid-template-rows:auto 1fr}
+ .hero{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px 100px}
+ .hero h1{font-size:28px;margin:0 0 40px;font-weight:700;letter-spacing:-.01em}
+ .tiles{display:grid;grid-template-columns:repeat(3,240px);gap:16px}
+ @media(max-width:800px){.tiles{grid-template-columns:1fr;width:min(100%,320px)}}
+ .tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+       background:var(--panel);border:1px solid var(--line);height:240px;padding-bottom:34px;transition:border-color .15s}
+ .tile:hover{border-color:var(--accent)}
+ .tile .ic{width:64px;height:64px;background:var(--panel2);border:1px solid var(--line2);
+           display:flex;align-items:center;justify-content:center}
+ .tile .ic svg{width:30px;height:30px;stroke:var(--accent);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+ .tile h2{margin:0;font-size:15px;font-weight:600;letter-spacing:.02em}
+ /* status line: part of the tile, not a badge floating on it */
+ .tile .st{position:absolute;left:0;right:0;bottom:0;height:34px;display:flex;align-items:center;justify-content:center;gap:8px;
+           border-top:1px solid var(--line);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+ .tile .st::before{content:"";width:6px;height:6px;background:currentColor;flex:none}
+ .tile .st.ok{color:var(--text)} .tile .st.warn{color:var(--warn)} .tile .st.bad{color:var(--bad)}
+</style></head><body>
+<div class="hdr">
+  <div class="brand"><span class="dot"></span>FireFighting Drone Portal</div>
+  <div class="menu" id="menu"><button onclick="document.getElementById('menu').classList.toggle('open')">Menu ▾</button>
+    <div class="dd">
+      <div class="lbl">Pages</div>
+      <a href="/">Portal home</a><a href="/ops">Operations</a><a href="/setup">Setup</a><a href="/requirements">Requirements</a>
+    </div></div>
+</div>
+<div class="hero">
+  <h1>FireFighting Drone Portal</h1>
+  <div class="tiles">
+    <a class="tile" href="/ops">
+      <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+      <h2>Operations</h2>
+      <span class="st" id="linkpill">Standby</span>
+    </a>
+    <a class="tile" href="/setup">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0 5 5L22 9l-3-3-2.3.3z"/><path d="M14.7 6.3L4 17a2 2 0 0 0 3 3L17.7 9.3"/></svg></div>
+      <h2>Setup</h2>
+      <span class="st">USB · one-time</span>
+    </a>
+    <a class="tile" href="/requirements">
+      <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
+      <h2>Requirements</h2>
+      <span class="st">Checklist</span>
+    </a>
+  </div>
+</div>
+<script>
+document.addEventListener('click',e=>{const m=document.getElementById('menu');if(!m.contains(e.target))m.classList.remove('open');});
+const p=document.getElementById('linkpill');
+function tick(){if(document.hidden)return;fetch('/api/state').then(r=>r.json()).then(s=>{
+    p.textContent=s.connected?('Linked · '+(s.armed?'ARMED':'disarmed')):'Standby · not linked';
+    p.className='st '+(s.connected?(s.armed?'warn':'ok'):'');})
+  .catch(()=>{p.textContent='Console offline';p.className='st bad';});}
+tick(); setInterval(tick,3000);
+</script>
+</body></html>

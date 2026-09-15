@@ -1,0 +1,86 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Requirements · FireFighting Drone Portal</title>
+<link rel="stylesheet" href="/static/portal.css">
+<style>
+ .two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+ @media(max-width:900px){.two{grid-template-columns:1fr}}
+ .why{color:var(--muted);font-size:13px;margin-top:2px}
+ .st{font-weight:700;white-space:nowrap}
+ .card h3.inl{margin:0}
+</style></head><body>
+<div class="hdr">
+  <div class="brand"><span class="dot"></span>FireFighting Drone Portal <span class="sub">Requirements</span></div>
+  <div class="menu" id="menu"><button onclick="document.getElementById('menu').classList.toggle('open')">Menu ▾</button>
+    <div class="dd"><div class="lbl">Pages</div>
+      <a href="/">Portal home</a><a href="/ops">Operations</a><a href="/setup">Setup</a><a href="/requirements">Requirements</a>
+    </div></div>
+</div>
+<div class="page">
+  <h1>Requirements</h1>
+
+  <div class="card" style="margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3 class="inl">This computer: live check</h3>
+      <div style="display:flex;gap:8px;align-items:center"><span class="pill" id="envsum">checking…</span>
+        <button class="btn sm" onclick="runCheck()">↻ Re-check</button></div>
+    </div>
+    <table class="t" style="margin-top:10px"><thead><tr><th style="width:36%">Item</th><th style="width:12%">Status</th><th>Details</th></tr></thead>
+      <tbody id="envrows"><tr><td colspan="3" class="muted">Running checks…</td></tr></tbody></table>
+    <div style="margin-top:12px" class="muted">Anything missing under <b>Always</b>: double-click <code>Install.bat</code> once. It installs Python, the packages and the Desktop shortcut. Then re-check here.</div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h3>On the drone: essential</h3>
+      <table class="t"><tbody>
+        <tr><td><b>Frame + 4 motors + ESC</b><div class="why">5" quad, 6S; must lift itself + 0.5 kg ball (≈1.3 kg all-up).</div></td></tr>
+        <tr><td><b>Flight controller supported by ArduPilot</b><div class="why">e.g. SpeedyBee F405 V5. Betaflight-only boards can't be converted.</div></td></tr>
+        <tr><td><b>GPS with compass</b><div class="why">Position and heading. Without both there is no autonomy.</div></td></tr>
+        <tr><td><b>RC transmitter + receiver</b><div class="why">Your override at all times; the mode switch beats the computer.</div></td></tr>
+        <tr><td><b>Bluetooth (built into the FC) or a telemetry radio</b><div class="why">How this laptop talks to the drone during operations. Only needed to start a mission; the flight itself runs inside the aircraft.</div></td></tr>
+        <tr><td><b>Dropper + positional servo</b><div class="why">3D-printed pin-pull with a standard (not 360°) MG90S on FC output 6.</div></td></tr>
+        <tr><td><b>Fire-extinguisher ball ≤ 0.5 kg, 6S battery + charger</b></td></tr>
+      </tbody></table>
+    </div>
+    <div class="card">
+      <h3>On the drone: optional</h3>
+      <table class="t"><tbody>
+        <tr><td><b>FPV camera + video transmitter + goggles</b><div class="why">Not needed to fly autonomously. Only for flying manually beyond what your eyes can see.</div></td></tr>
+        <tr><td><b>Buzzer / LEDs</b><div class="why">Find a landed drone, hear arming tones.</div></td></tr>
+      </tbody></table>
+      <h3 style="margin-top:16px">USB vs Bluetooth</h3>
+      <div class="muted" style="font-size:12.5px">The USB cable is for setup only (flashing, parameters, calibration). Operations use Bluetooth, and nothing is plugged into the drone when it flies.</div>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener('click',e=>{const m=document.getElementById('menu');if(!m.contains(e.target))m.classList.remove('open');});
+function st(ok){return ok===true?'<span class="tick">✓ OK</span>':(ok===false?'<span class="cross">✗ missing</span>':(ok==='opt'?'<span class="unk">– optional</span>':'<span class="unk">– not now</span>'));}
+function runCheck(){
+  document.getElementById('envsum').textContent='checking…';
+  fetch('/api/env').then(r=>r.json()).then(e=>{
+    const rows=[];
+    rows.push(['grp','ALWAYS']);
+    rows.push(['Python', e.python.ok, 'Python '+e.python.version+' on '+e.os+(e.python.ok?'':'. Need 3.10 or newer; run Install.bat')]);
+    for(const p of e.packages) rows.push(['Package: '+p.name, p.ok, p.ok?((p.version&&p.version!=='?')?('v'+p.version):'installed'):'run Install.bat']);
+    rows.push(['grp','FOR SETUP ONLY (USB cable, one-time)']);
+    rows.push(['Mission Planner', e.mission_planner?true:'opt', e.mission_planner?'installed':'not needed: the portal flashes ArduPilot itself. Handy later for reading flight logs']);
+    rows.push(['Flight controller on USB', e.fc.kind==='ardupilot'?true:(e.fc.kind==='stm32'?false:null),
+      e.fc.kind==='ardupilot'?('ArduPilot board on '+e.fc.port):(e.fc.kind==='stm32'?('STM32 board on '+e.fc.port+'. Still Betaflight? See Setup, Convert'):'not plugged in, which is normal unless you are setting up right now')]);
+    rows.push(['grp','FOR OPERATIONS (Bluetooth, every flight)']);
+    rows.push(['Bluetooth bridge running', e.bridge, e.bridge?'tcp 127.0.0.1:5770 open':'start it with the Desktop shortcut']);
+    // a drone that is switched off is not a missing requirement: only the bridge is
+    rows.push(['Drone linked over Bluetooth', LINKED===true?true:null, LINKED===true?'telemetry flowing':(e.bridge?'drone off or out of range. Normal on the bench; it links by itself when powered':'start the bridge first (Desktop shortcut)')]);
+    rows.push(['Internet (satellite map)', e.internet, e.internet?'map imagery reachable':'no internet. The map is blank, flying still works']);
+    document.getElementById('envrows').innerHTML=rows.map(r=>r[0]==='grp'?`<tr class="grp"><td colspan="3">${r[1]}</td></tr>`:`<tr><td>${r[0]}</td><td class="st">${st(r[1])}</td><td class="muted">${r[2]}</td></tr>`).join('');
+    const bad=rows.filter(r=>r[0]!=='grp'&&r[1]===false).length;
+    const s=document.getElementById('envsum'); s.textContent=bad?(bad+' item(s) missing'):'all good'; s.className='pill '+(bad?'bad':'ok');
+  }).catch(()=>{document.getElementById('envsum').textContent='check failed';});
+}
+let LINKED=null;
+function linkTick(){if(document.hidden)return;fetch('/api/state').then(r=>r.json()).then(s=>{const was=LINKED;LINKED=s.connected===true;if(was!==LINKED)runCheck();}).catch(()=>{});}
+linkTick(); setInterval(linkTick,5000);
+runCheck();
+</script>
+</body></html>

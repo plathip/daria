@@ -1,0 +1,31 @@
+# bulky tooling — not source (Mission Planner portable, ~330 MB)
+tools/
+
+# raw upload from the desktop machine (zip + extraction, ~1.4 GB)
+uploadFromDesktopComputer/
+
+# SITL working directories (logs, virtual eeprom)
+sim/
+
+# your site, factory pins and settings: local only
+console/settings.json
+console/site.json
+missions/
+
+# backups, recordings and generated parameter files
+fc/backups/
+fc/generated/
+fc/rc_record.json
+
+# python
+__pycache__/
+*.pyc
+
+# map tile cache and downloaded firmware (regenerated on demand)
+console/tilecache/
+fc/firmware/
+console/bridge_status.json
+
+# private Python copy made by Install.bat
+.python/
+.venv/
