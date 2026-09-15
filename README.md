@@ -14,6 +14,25 @@ The pilot's radio overrides it at any moment.
 Runs on ArduCopter (SpeedyBee F405 V5 tested). Progress and parts:
 [docs/project-status.md](docs/project-status.md).
 
+## Tested with these components
+
+| # | Part | Used on the test aircraft |
+|---|---|---|
+| 1 | Flight controller | SpeedyBee F405 V5, ArduCopter 4.7 |
+| 2 | ESC | SpeedyBee 0X32 55 A 4-in-1, DShot300 |
+| 3 | Motors x4 | RCinPower AOS Supernova 2207 1980KV |
+| 4 | Props x4 | 5" tri-blade |
+| 5 | GPS + compass | FlyFishRC M10 with IST8310 |
+| 6 | Receiver | ELRS receiver, CRSF |
+| 7 | Camera + VTX | Caddx Ratel 2 analog + AKK Infinite DVR VTX (optional, manual flying only) |
+| 8 | Battery | 6S 1300 mAh LiPo, XT60 |
+| 9 | Capacitor | low-ESR capacitor on the ESC power pads |
+| 10 | Release servo | MG90S 9 g metal gear, positional, on FC output 6 |
+
+Frame: the printed one in `stl/`, or any 5" frame with room for the ball.
+Any flight controller in ArduPilot's board list should work; the Setup page
+lists them.
+
 ## Install (Windows 10 or 11, 64-bit)
 
 1. Click the green **Code** button, then **Download ZIP**. Unzip it anywhere.
