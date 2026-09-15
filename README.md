@@ -88,3 +88,7 @@ aircraft. Needs SITL for Windows in `tools/sitl/` (not in the repository).
   check the build, the wiring and every Setup step, or at least go through
   them again with an AI assistant, and make sure the failsafes and the
   radio override work on the bench first.
+
+## License
+
+MIT, see [LICENSE](LICENSE). That covers the code and the STL files.
